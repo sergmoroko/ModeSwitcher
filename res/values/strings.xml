@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">ModeSwitcher</string>
+
+    <string-array name="modes">
+        <item>Normal</item>
+        <item>Silent</item>
+        <item>Vibrate</item>
+    </string-array>
+
+    <string-array name="days">
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wednesday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+        <item>Sunday</item>
+    </string-array>
+
+    <string-array name="detailsTitles">
+        <item>Start Time</item>
+        <item>Break Time</item>
+        <item>Break Length</item>
+        <item>End Time</item>
+        <item>Repeat</item>
+        <item>Mode</item>
+        <item>Name</item>
+    </string-array>
+
+    <string-array name="detailsDefaultData">
+        <item>--:--</item>
+        <item>--:--</item>
+        <item>1 h</item>
+        <item>--:--</item>
+        <item>-----</item>
+        <item>mode name</item>
+        <item> </item>
+    </string-array>
+</resources>
+
+
