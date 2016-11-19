@@ -2,6 +2,8 @@ package com.example.sergmoroko.modeswitcher;
 
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -11,7 +13,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ImageView;
+import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -21,19 +23,37 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
-    private ArrayList<String> data = new ArrayList<String>();
+    private ArrayList<ListItem> data = new ArrayList<>();
+    private ArrayList<Integer> rowIDs = new ArrayList<>();
+    SQLiteDatabase db;
+    ModeSwitcherDbHelper dbHelper;
+    MyListAdapter listAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ListView lv = (ListView) findViewById(R.id.listview);
-           generateListContent();
-           lv.setAdapter(new MyListAdaper(this, R.layout.list_item, data));
+        dbHelper = new ModeSwitcherDbHelper(this);
+        db = dbHelper.getWritableDatabase();
+
+
+          // generateListContent();
+            getData();
+        listAdapter = new MyListAdapter(this, R.layout.list_item_with_button, data);
+           lv.setAdapter(listAdapter);
            lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                    @Override
                    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                           Toast.makeText(MainActivity.this, "List item was clicked at " + position, Toast.LENGTH_SHORT).show();
+                       Intent intent = new Intent(getApplicationContext(), DetailsActivity.class);
+                       if(!rowIDs.isEmpty()){
+                           intent.putExtra("id", rowIDs.get(position));
+                       }
+                       else{
+                           intent.putExtra("id", -1);
+                       }
+                       startActivity(intent);
                       }
                });
 
@@ -42,11 +62,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         addNew.setOnClickListener(this);
        }
 
-           private void generateListContent() {
-           for(int i = 0; i < 3; i++) {
-                   data.add("This is row number " + i);
-               }
-       }
+
+
+//           private void generateListContent() {
+//           for(int i = 0; i < 3; i++) {
+//                   data.add("This is row number " + i);
+//               }
+//       }
 
 
     @Override
@@ -59,49 +81,91 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onClick(View v) {
-        if (v.getId() == R.id.main_activity_add_new_button){
+        if (v.getId() == R.id.main_activity_add_new_button) {
             Intent intent = new Intent(this, DetailsActivity.class);
+            intent.putExtra("id", -1);
             startActivity(intent);
         }
     }
 
-    private class MyListAdaper extends ArrayAdapter<String> {
-           private int layout;
-           private List<String> mObjects;
-           private MyListAdaper(Context context, int resource, List<String> objects) {
-                   super(context, resource, objects);
-                   mObjects = objects;
-                   layout = resource;
-               }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        getData();
+        listAdapter.notifyDataSetChanged();
+    }
+
+    private class MyListAdapter extends ArrayAdapter<ListItem> {
+        private int layout;
+        private List<ListItem> items;
+        private MyListAdapter(Context context, int resource, List<ListItem> objects) {
+            super(context, resource, objects);
+            items = objects;
+            layout = resource;
+        }
 
                   @Override
           public View getView(final int position, View convertView, ViewGroup parent) {
-                  ViewHolder mainViewholder = null;
-                  if(convertView == null) {
+                      ViewHolder mainViewHolder;
+
+                      if(convertView == null) {
                           LayoutInflater inflater = LayoutInflater.from(getContext());
-                         convertView = inflater.inflate(layout, parent, false);
-                         ViewHolder viewHolder = new ViewHolder();
-                         viewHolder.thumbnail = (ImageView) convertView.findViewById(R.id.list_item_thumbnail);
-                         viewHolder.title = (TextView) convertView.findViewById(R.id.list_item_text);
-                         viewHolder.button = (Button) convertView.findViewById(R.id.list_item_btn);
+                          convertView = inflater.inflate(layout, parent, false);
+                          ViewHolder viewHolder = new ViewHolder();
+
+                         viewHolder.title = (TextView) convertView.findViewById(R.id.list_item_with_button_text1);
+                         viewHolder.value = (TextView) convertView.findViewById(R.id.list_item_with_button_text2);
+                         viewHolder.button = (ImageButton) convertView.findViewById(R.id.image_button);
                          convertView.setTag(viewHolder);
                      }
-                  mainViewholder = (ViewHolder) convertView.getTag();
-                  mainViewholder.button.setOnClickListener(new View.OnClickListener() {
-                             @Override
-                          public void onClick(View v) {
-                                  Toast.makeText(getContext(), "Button was clicked for list item " + position, Toast.LENGTH_SHORT).show();
-                              }
-                      });
-               mainViewholder.title.setText(getItem(position));
+                      ListItem item = items.get(position);
+                      mainViewHolder = (ViewHolder) convertView.getTag();
+
+                      mainViewHolder.title.setText(item.getTitle());
+                      mainViewHolder.value.setText(item.getValue());
 
                       return convertView;
              }
         }
     public class ViewHolder {
 
-        ImageView thumbnail;
+        //ImageView thumbnail;
         TextView title;
-        Button button;
+        TextView value;
+        ImageButton button;
         }
+
+    private void getData(){
+
+        if(!data.isEmpty()){
+            data.clear();
+        }
+        if(!rowIDs.isEmpty()){
+            rowIDs.clear();
+        }
+
+        Cursor cursor = db.query(ModeSwitcherDbContract.dataEntry.TABLE_NAME, null, null, null, null, null, null);
+        if(cursor.getCount()!= 0) {
+
+            if (cursor.moveToFirst()) {
+
+                int titleIndex = cursor.getColumnIndex(ModeSwitcherDbContract.dataEntry.COLUMN_SUMMARY);
+                int valueIndex = cursor.getColumnIndex(ModeSwitcherDbContract.dataEntry.COLUMN_REPEAT_STRING);
+                int IDIndex = cursor.getColumnIndex(ModeSwitcherDbContract.dataEntry._ID);
+
+                do {
+                    String title = cursor.getString(titleIndex);
+                    String value = cursor.getString(valueIndex);
+
+                    data.add(new ListItem(title, value));
+                    rowIDs.add(cursor.getInt(IDIndex));
+
+                }
+                while (cursor.moveToNext());
+
+            }
+
+        }
+
+    }
 }

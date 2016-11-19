@@ -4,19 +4,24 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.TimePickerDialog;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.SeekBar;
@@ -27,14 +32,20 @@ import android.widget.TimePicker;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
+
+import com.example.sergmoroko.modeswitcher.ModeSwitcherDbContract.dataEntry;
 
 /**
  * Created by ssss on 04.11.2016.
  */
-public class DetailsActivity extends AppCompatActivity{
+public class DetailsActivity extends AppCompatActivity implements View.OnClickListener{
     private ArrayList<ListItem> data = new ArrayList<>();
     private ArrayList<Integer> timeData = new ArrayList<>();
+    private int id;
+
+    SQLiteDatabase db;
 
     static int pickerHour = 0;
     static int pickerMinute = 0;
@@ -59,6 +70,7 @@ public class DetailsActivity extends AppCompatActivity{
     int alarmMode = 0;
     //private ArrayList<Boolean> repeatData = new ArrayList<>();
 
+
     boolean[] repeat = {false, false, false, false, false, false, false};
 
     String descriptionText;
@@ -66,6 +78,7 @@ public class DetailsActivity extends AppCompatActivity{
     //ArrayList<String> textValues = new ArrayList<>(Collections.nCopies(7, ""));
 
 
+    ModeSwitcherDbHelper dbHelper;
 
 
     ArrayList titles;
@@ -80,11 +93,31 @@ public class DetailsActivity extends AppCompatActivity{
 
         currentActivity = this;
 
+//        dbHelper = new ModeSwitcherDbHelper(this);
+//
+//        db = dbHelper.getWritableDatabase();
+
         titles = new ArrayList<>(Arrays.asList(getResources().getStringArray(R.array.detailsTitles)));
         //textValues = new ArrayList<>(Arrays.asList(getResources().getStringArray(R.array.detailsDefaultData)));
 
+
+        id = this.getIntent().getIntExtra("id", 0);
+
         setContentView(R.layout.activity_details);
         ListView lv = (ListView) findViewById(R.id.listview_details);
+        Button doneBtn = (Button) findViewById(R.id.details_button_done);
+        Button deleteBtn = (Button) findViewById(R.id.details_button_delete);
+        doneBtn.setOnClickListener(this);
+        deleteBtn.setOnClickListener(this);
+
+        if(!isNew()){
+
+            getDbData();
+        }
+        else{
+            deleteBtn.setVisibility(View.GONE);
+        }
+
         if(data.isEmpty()){
             generateListContent();
         }
@@ -137,7 +170,7 @@ public class DetailsActivity extends AppCompatActivity{
         });
 
 
-        // TODO: 08.11.2016 BACK BUTTON
+
         //getActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
@@ -227,6 +260,9 @@ public class DetailsActivity extends AppCompatActivity{
 //            data.add(new ListItem("Repeat", "every day"));
 //            data.add(new ListItem("Mode", "mode name"));
 //            data.add(new ListItem("Name", "day shift"));
+        if(!data.isEmpty()){
+            data.clear();
+        }
 
         data.add(new ListItem("Start Time", timeToString(startHour, startMinute)));
         data.add(new ListItem("Break Time", timeToString(breakStartHour, breakStartMinute)));
@@ -257,6 +293,19 @@ public class DetailsActivity extends AppCompatActivity{
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
+        }
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()){
+            case R.id.details_button_done:
+                putDbData();
+                break;
+            // TEST ONLY
+            case R.id.details_button_delete:
+                deleteDbEntry();
+                break;
         }
     }
 
@@ -301,35 +350,35 @@ public class DetailsActivity extends AppCompatActivity{
         TextView value;
     }
 
-    public class ListItem{
-
-        private String title = null;
-        private String value = null;
-
-        ListItem() {
-        }
-
-        ListItem(String title, String value) {
-            setTitle(title);
-            setValue(value);
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
-        }
-
-        public void setValue(String value) {
-            this.value = value;
-        }
-
-        public String getTitle() {
-            return title;
-        }
-
-        public String getValue() {
-            return value;
-        }
-    }
+//    public class ListItem{
+//
+//        private String title = null;
+//        private String value = null;
+//
+//        ListItem() {
+//        }
+//
+//        ListItem(String title, String value) {
+//            setTitle(title);
+//            setValue(value);
+//        }
+//
+//        public void setTitle(String title) {
+//            this.title = title;
+//        }
+//
+//        public void setValue(String value) {
+//            this.value = value;
+//        }
+//
+//        public String getTitle() {
+//            return title;
+//        }
+//
+//        public String getValue() {
+//            return value;
+//        }
+//    }
 
 
     public static class TimePickerFragment extends DialogFragment
@@ -703,6 +752,8 @@ public class DetailsActivity extends AppCompatActivity{
 
     public String setRepeatText(ArrayList<Integer> days){
 
+        Collections.sort(days);
+
         String d ="";
 
         for(int i =0; i <days.size(); i++){
@@ -799,6 +850,11 @@ public class DetailsActivity extends AppCompatActivity{
             }
         }
 
+        if(d.lastIndexOf(',') == d.length() - 2 && d.length()!= 0){
+
+            d = d.substring(0,d.length() - 2);
+        }
+
         return d;
     }
 
@@ -813,6 +869,137 @@ public class DetailsActivity extends AppCompatActivity{
         return l;
     }
 
+    private String summaryString(){
+        if(descriptionText!= null && !descriptionText.equals("")){
+            return descriptionText;
+        }
+        else{
+            return timeToString(startHour, startMinute) + " - " + timeToString(endHour, endMinute);
+        }
+    }
 
+
+
+    private boolean[] intToBooleanArray(int[] array){
+        boolean[] boolArray = {false, false, false, false, false, false, false};
+
+        for (int i = 0; i < boolArray.length; i++){
+            if(array[i] == 1){
+                boolArray[i] = true;
+            }
+        }
+        return boolArray;
+    }
+
+    private int booleanToInt(boolean b){
+        if(b){
+            return 1;
+        }
+        return 0;
+    }
+
+    private void getDbData(){
+
+        dbHelper = new ModeSwitcherDbHelper(this);
+        db = dbHelper.getWritableDatabase();
+
+        String selection = "_ID" + "=?";
+        String[] selectionArgs = new String[] { String.valueOf(id) };
+
+        Cursor cursor = db.query(dataEntry.TABLE_NAME, null, selection, selectionArgs, null, null, null);
+
+        cursor.moveToFirst();
+
+            int startHourIndex = cursor.getColumnIndex(dataEntry.COLUMN_START_HOUR);
+            int startMinuteIndex = cursor.getColumnIndex(dataEntry.COLUMN_START_MINUTE);
+            int breakStartHourIndex = cursor.getColumnIndex(dataEntry.COLUMN_BREAK_START_HOUR);
+            int breakStartMinuteIndex = cursor.getColumnIndex(dataEntry.COLUMN_BREAK_START_MINUTE);
+            int endHourIndex = cursor.getColumnIndex(dataEntry.COLUMN_END_HOUR);
+            int endMinuteIndex = cursor.getColumnIndex(dataEntry.COLUMN_END_MINUTE);
+            int breakLengthIndex = cursor.getColumnIndex(dataEntry.COLUMN_BREAK_LENGTH);
+            int alarmModeIndex = cursor.getColumnIndex(dataEntry.COLUMN_ALARM_MODE);
+            int descriptionIndex = cursor.getColumnIndex(dataEntry.COLUMN_DESCRIPTION);
+            int repeatMondayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_MONDAY);
+            int repeatTuesdayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_TUESDAY);
+            int repeatWednesdayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_WEDNESDAY);
+            int repeatThursdayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_THURSDAY);
+            int repeatFridayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_FRIDAY);
+            int repeatSaturdayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_SATURDAY);
+            int repeatSundayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_SUNDAY);
+
+
+            startHour = cursor.getInt(startHourIndex);
+            startMinute = cursor.getInt(startMinuteIndex);
+            breakStartHour = cursor.getInt(breakStartHourIndex);
+            breakStartMinute = cursor.getInt(breakStartMinuteIndex);
+            endHour = cursor.getInt(endHourIndex);
+            endMinute = cursor.getInt(endMinuteIndex);
+            breakLength = cursor.getInt(breakLengthIndex);
+            alarmMode = cursor.getInt(alarmModeIndex);
+            descriptionText = cursor.getString(descriptionIndex);
+
+            int[] repeatArray = {cursor.getInt(repeatMondayIndex), cursor.getInt(repeatTuesdayIndex),
+                    cursor.getInt(repeatWednesdayIndex), cursor.getInt(repeatThursdayIndex),
+                    cursor.getInt(repeatFridayIndex), cursor.getInt(repeatSaturdayIndex),
+                    cursor.getInt(repeatSundayIndex)};
+            repeat = intToBooleanArray(repeatArray);
+
+
+        cursor.close();
+        dbHelper.close();
+    }
+
+    private void putDbData(){
+
+        dbHelper = new ModeSwitcherDbHelper(this);
+        db = dbHelper.getWritableDatabase();
+
+        ContentValues cv = new ContentValues();
+        cv.put(dataEntry.COLUMN_START_HOUR, startHour);
+        cv.put(dataEntry.COLUMN_START_MINUTE, startMinute);
+        cv.put(dataEntry.COLUMN_BREAK_START_HOUR, breakStartHour);
+        cv.put(dataEntry.COLUMN_BREAK_START_MINUTE, breakStartMinute);
+        cv.put(dataEntry.COLUMN_BREAK_LENGTH, breakLength);
+        cv.put(dataEntry.COLUMN_END_HOUR, endHour);
+        cv.put(dataEntry.COLUMN_END_MINUTE, endMinute);
+        cv.put(dataEntry.COLUMN_ALARM_MODE, alarmMode);
+
+        cv.put(dataEntry.COLUMN_REPEAT_MONDAY, booleanToInt(repeat[0]));
+        cv.put(dataEntry.COLUMN_REPEAT_TUESDAY, booleanToInt(repeat[1]));
+        cv.put(dataEntry.COLUMN_REPEAT_WEDNESDAY, booleanToInt(repeat[2]));
+        cv.put(dataEntry.COLUMN_REPEAT_THURSDAY, booleanToInt(repeat[3]));
+        cv.put(dataEntry.COLUMN_REPEAT_FRIDAY, booleanToInt(repeat[4]));
+        cv.put(dataEntry.COLUMN_REPEAT_SATURDAY, booleanToInt(repeat[5]));
+        cv.put(dataEntry.COLUMN_REPEAT_SUNDAY, booleanToInt(repeat[6]));
+
+        cv.put(dataEntry.COLUMN_DESCRIPTION, descriptionText);
+        cv.put(dataEntry.COLUMN_SUMMARY, summaryString());
+        cv.put(dataEntry.COLUMN_REPEAT_STRING, repeatTextToString(repeat));
+
+        if(isNew()){
+            db.insertOrThrow(dataEntry.TABLE_NAME, null, cv);
+        }
+        else {
+            String whereClause = "_ID=?";
+            String[] whereArgs = new String[] { String.valueOf(id) };
+            db.update(dataEntry.TABLE_NAME,cv, whereClause, whereArgs);
+        }
+
+        dbHelper.close();
+    }
+
+    private void deleteDbEntry(){
+        dbHelper = new ModeSwitcherDbHelper(this);
+        db = dbHelper.getWritableDatabase();
+        String whereClause = "_ID=?";
+        String[] whereArgs = new String[] { String.valueOf(id) };
+        db.delete(dataEntry.TABLE_NAME, whereClause, whereArgs);
+
+        dbHelper.close();
+    }
+
+    private boolean isNew(){
+        return id == -1;
+    }
 
 }
