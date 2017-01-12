@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="edittext" type="id"/>
+    <item name="seek_bar" type="id"/>
+    <item name="spinner" type="id"/>
+    <item name="list_view" type="id"/>
+</resources>

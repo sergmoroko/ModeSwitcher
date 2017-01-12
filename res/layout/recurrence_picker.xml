@@ -3,30 +3,44 @@
     android:orientation="vertical" android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-        <RadioGroup
-            android:layout_width="match_parent"
+    <RadioGroup
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_horizontal"
+        android:id="@+id/recurrence_picker_radiogroup"
+        android:layout_marginTop="10dp">
+        <RadioButton
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_horizontal"
-            android:id="@+id/recurrence_picker_radiogroup">
-            <RadioButton
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="working day"
-                android:id="@+id/rb_wd"
-                />
-            <RadioButton
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="every day"
-                android:id="@+id/rb_ed"
-                />
-            <RadioButton
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="not selected"
-                android:id="@+id/rb_ns"
-                />
-        </RadioGroup>
+            android:text="working days"
+            android:id="@+id/rb_wd"
+            />
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="every day"
+            android:id="@+id/rb_ed"
+            />
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="not selected"
+            android:id="@+id/rb_ns"
+            />
+    </RadioGroup>
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@android:color/darker_gray"
+        android:layout_marginTop="15dp" />
+
+    <Spinner
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/repeat_spinner"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="15dp">
+    </Spinner>
 
 </LinearLayout>

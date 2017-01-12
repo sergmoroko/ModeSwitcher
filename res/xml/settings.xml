@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:key="first_preferencescreen">
+
+    <CheckBoxPreference
+        android:key="pre_delay_enabled"
+        android:summary="Switch profile to silent/vibrate with 5m pre-delay"
+        android:title="Pre-switching" />
+
+
+    <CheckBoxPreference
+        android:key="post_delay_enabled"
+        android:summary="Switch sound profile to normal with 5m post-delay"
+        android:title="Post-switching" />
+
+</PreferenceScreen>

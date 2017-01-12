@@ -28,6 +28,13 @@ public class ModeSwitcherDbContract {
         public static final String COLUMN_REPEAT_SUNDAY = "repeat_sun";
         public static final String COLUMN_SUMMARY = "summary";
         public static final String COLUMN_REPEAT_STRING = "repeat_string";
+        public static final String COLUMN_STATE = "is_enabled";
+        public static final String COLUMN_WEEKLY_REPEAT_TYPE = "weekly_repeat_type";
+        public static final String COLUMN_WEEKLY_REPEAT_BEGINNING = "weekly_repeat_beginning";
+        public static final String COLUMN_ALARM_START_ID = "alarm_start_id";
+        public static final String COLUMN_ALARM_END_ID = "alarm_end_id";
+        public static final String COLUMN_ALRMS_LEFT_QTY = "alarms_left";
+
 
     }
 }

@@ -11,10 +11,10 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.text.format.DateFormat;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -24,6 +24,8 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -32,7 +34,6 @@ import android.widget.TimePicker;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
 
 import com.example.sergmoroko.modeswitcher.ModeSwitcherDbContract.dataEntry;
@@ -40,20 +41,18 @@ import com.example.sergmoroko.modeswitcher.ModeSwitcherDbContract.dataEntry;
 /**
  * Created by ssss on 04.11.2016.
  */
-public class DetailsActivity extends AppCompatActivity implements View.OnClickListener{
+public class DetailsActivity extends AppCompatActivity implements View.OnClickListener {
     private ArrayList<ListItem> data = new ArrayList<>();
     private ArrayList<Integer> timeData = new ArrayList<>();
-    private int id;
+    private long id;
 
     SQLiteDatabase db;
 
     static int pickerHour = 0;
     static int pickerMinute = 0;
-    static String time;
-    //static TextView tv;
     static boolean timeSet;
-    ArrayList mSelectedItems;
-    ArrayList workdays = new ArrayList();
+
+
     static int currentPosition;
 
     private static Activity currentActivity;
@@ -68,21 +67,16 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
     int endMinute = 0;
     int breakLength = 0;
     int alarmMode = 0;
-    //private ArrayList<Boolean> repeatData = new ArrayList<>();
-
+    int repeatType = 0;
+    long repeatStart = 0;
 
     boolean[] repeat = {false, false, false, false, false, false, false};
 
     String descriptionText;
 
-    //ArrayList<String> textValues = new ArrayList<>(Collections.nCopies(7, ""));
-
-
     ModeSwitcherDbHelper dbHelper;
 
-
     ArrayList titles;
-    //ArrayList textValues;
 
 
     @Override
@@ -93,13 +87,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
 
         currentActivity = this;
 
-//        dbHelper = new ModeSwitcherDbHelper(this);
-//
-//        db = dbHelper.getWritableDatabase();
-
         titles = new ArrayList<>(Arrays.asList(getResources().getStringArray(R.array.detailsTitles)));
-        //textValues = new ArrayList<>(Arrays.asList(getResources().getStringArray(R.array.detailsDefaultData)));
-
 
         id = this.getIntent().getIntExtra("id", 0);
 
@@ -107,18 +95,19 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         ListView lv = (ListView) findViewById(R.id.listview_details);
         Button doneBtn = (Button) findViewById(R.id.details_button_done);
         Button deleteBtn = (Button) findViewById(R.id.details_button_delete);
+        Button cancelBtn = (Button) findViewById(R.id.details_button_cancel);
         doneBtn.setOnClickListener(this);
         deleteBtn.setOnClickListener(this);
+        cancelBtn.setOnClickListener(this);
 
-        if(!isNew()){
+        if (!isNew()) {
 
             getDbData();
-        }
-        else{
+        } else {
             deleteBtn.setVisibility(View.GONE);
         }
 
-        if(data.isEmpty()){
+        if (data.isEmpty()) {
             generateListContent();
         }
         listAdapter = new MyListAdapter(this, android.R.layout.simple_list_item_2, data);
@@ -127,51 +116,34 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
-
-                switch (position){
+                currentPosition = position;
+                switch (position) {
                     case 0:
                         showTimePickerDialog(view);
-                        //tv = (TextView)view.findViewById(android.R.id.text2);
-                        currentPosition = position;
                         break;
                     case 1:
                         showTimePickerDialog(view);
-                        //tv = (TextView)view.findViewById(android.R.id.text2);
-                        currentPosition = position;
                         break;
                     case 2:
-                        //tv = (TextView)view.findViewById(android.R.id.text2);
                         ShowSeekDialog();
-                        currentPosition = position;
                         break;
                     case 3:
                         showTimePickerDialog(view);
-                        //tv = (TextView)view.findViewById(android.R.id.text2);
-                        currentPosition = position;
                         break;
                     case 4:
                         showRecurrencePickerDialog();
-                        //tv = (TextView)view.findViewById(android.R.id.text2);
-                        currentPosition = position;
                         break;
                     case 5:
                         ShowModeDialog();
-                        //tv = (TextView)view.findViewById(android.R.id.text2);
-                        currentPosition = position;
                         break;
                     case 6:
                         ShowNameDialog();
-                        //tv = (TextView)view.findViewById(android.R.id.text2);
-                        currentPosition = position;
                         break;
 
                 }
             }
         });
 
-
-
-        //getActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
     }
 
@@ -194,11 +166,10 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
 
         outState.putString("description", descriptionText);
 
-
+        outState.putInt("repeatType", repeatType);
+        outState.putLong("repeatStart", repeatStart);
 
     }
-
-
 
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
@@ -215,11 +186,14 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         breakStartHour = savedInstanceState.getIntegerArrayList("time").get(6);
         breakStartMinute = savedInstanceState.getIntegerArrayList("time").get(7);
 
-        for(int i = 0; i <repeat.length; i++){
+        for (int i = 0; i < repeat.length; i++) {
             repeat[i] = savedInstanceState.getBooleanArray("repeat")[i];
         }
 
         descriptionText = savedInstanceState.getString("description");
+
+        repeatType = savedInstanceState.getInt("repeatType");
+        repeatStart = savedInstanceState.getLong("repeatStart");
 
 
         data.clear();
@@ -228,11 +202,10 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         data.add(new ListItem("Break Length", breakLengthTextToString(breakLength)));
         data.add(new ListItem("End Time", timeToString(endHour, endMinute)));
         data.add(new ListItem("Repeat", repeatTextToString(repeat)));
-        data.add(new ListItem("Mode", soundProfileToString(alarmMode)));
-        data.add(new ListItem("Name", (descriptionText)));
+        data.add(new ListItem("Sound Profile", soundProfileToString(alarmMode)));
+        data.add(new ListItem("Description (optional)", (descriptionText)));
 
         listAdapter.notifyDataSetChanged();
-
 
     }
 
@@ -243,24 +216,9 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
     }
 
 
-    //    @Override
-//    public void onConfigurationChanged(Configuration newConfig) {
-//        super.onConfigurationChanged(newConfig);
-//        System.out.println("CONFIG CHANGED");
-//        setContentView(R.layout.activity_details);
-//        generateListContent();
-//    }
-
     private void generateListContent() {
-            //data.add(new ListItem("Type", "Workday"));
-//            data.add(new ListItem("Start Time", "8:30"));
-//            data.add(new ListItem("Break Time", "13:00"));
-//            data.add(new ListItem("Break Length", "1 h"));
-//            data.add(new ListItem("End Time", "17:30"));
-//            data.add(new ListItem("Repeat", "every day"));
-//            data.add(new ListItem("Mode", "mode name"));
-//            data.add(new ListItem("Name", "day shift"));
-        if(!data.isEmpty()){
+
+        if (!data.isEmpty()) {
             data.clear();
         }
 
@@ -269,27 +227,16 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         data.add(new ListItem("Break Length", breakLengthTextToString(breakLength)));
         data.add(new ListItem("End Time", timeToString(endHour, endMinute)));
         data.add(new ListItem("Repeat", repeatTextToString(repeat)));
-        data.add(new ListItem("Mode", soundProfileToString(alarmMode)));
-        data.add(new ListItem("Name", (descriptionText)));
+        data.add(new ListItem("Sound Profile", soundProfileToString(alarmMode)));
+        data.add(new ListItem("Description (optional)", (descriptionText)));
 
-
-
-//        for(int i = 0; i < 7; i++){
-//            data.add(new ListItem(titles.get(i).toString(), textValues.get(i).toString()));
-//        }
     }
-
-
-
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case android.R.id.home:
-
-                Intent intent = new Intent(this, MainActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                startActivity(intent);
+                goBack();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -298,13 +245,20 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
 
     @Override
     public void onClick(View v) {
-        switch (v.getId()){
+        switch (v.getId()) {
             case R.id.details_button_done:
                 putDbData();
+                doneBack();
+                //goBack();
                 break;
-            // TEST ONLY
             case R.id.details_button_delete:
-                deleteDbEntry();
+                //deleteDbEntry();
+                //deleteBack();
+                showDeleteConfirmationDialog();
+                //goBack();
+                break;
+            case R.id.details_button_cancel:
+                goBack();
                 break;
         }
     }
@@ -312,6 +266,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
     private class MyListAdapter extends ArrayAdapter<ListItem> {
         private int layout;
         private List<ListItem> items;
+
         private MyListAdapter(Context context, int resource, List<ListItem> objects) {
             super(context, resource, objects);
             items = objects;
@@ -322,7 +277,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         public View getView(final int position, View convertView, ViewGroup parent) {
             ViewHolder mainViewHolder;
 
-            if(convertView == null) {
+            if (convertView == null) {
                 LayoutInflater inflater = LayoutInflater.from(getContext());
                 convertView = inflater.inflate(layout, parent, false);
                 ViewHolder viewHolder = new ViewHolder();
@@ -350,36 +305,6 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         TextView value;
     }
 
-//    public class ListItem{
-//
-//        private String title = null;
-//        private String value = null;
-//
-//        ListItem() {
-//        }
-//
-//        ListItem(String title, String value) {
-//            setTitle(title);
-//            setValue(value);
-//        }
-//
-//        public void setTitle(String title) {
-//            this.title = title;
-//        }
-//
-//        public void setValue(String value) {
-//            this.value = value;
-//        }
-//
-//        public String getTitle() {
-//            return title;
-//        }
-//
-//        public String getValue() {
-//            return value;
-//        }
-//    }
-
 
     public static class TimePickerFragment extends DialogFragment
             implements TimePickerDialog.OnTimeSetListener {
@@ -388,8 +313,28 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             // Use the current time as the default values for the picker
             final Calendar c = Calendar.getInstance();
-            int hour = c.get(Calendar.HOUR_OF_DAY);
-            int minute = c.get(Calendar.MINUTE);
+            int hour = 0;
+            int minute = 0;
+            if (getInstance().isNew()) {
+                hour = c.get(Calendar.HOUR_OF_DAY);
+                minute = c.get(Calendar.MINUTE);
+            } else {
+                switch (currentPosition) {
+                    case 0:
+                        hour = getInstance().startHour;
+                        minute = getInstance().startMinute;
+                        break;
+                    case 1:
+                        hour = getInstance().breakStartHour;
+                        minute = getInstance().breakStartMinute;
+                        break;
+                    case 3:
+                        hour = getInstance().endHour;
+                        minute = getInstance().endMinute;
+                        break;
+                }
+            }
+
 
             // Create a new instance of TimePickerDialog and return it
             return new TimePickerDialog(getActivity(), this, hour, minute,
@@ -403,39 +348,19 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         }
 
 
+
+
         @Override
         public void onDismiss(DialogInterface dialog) {
             super.onDismiss(dialog);
 
-            if(timeSet) {
-//                String hour;
-//                String minute;
-//                if(pickerHour < 10){
-//                    hour = "0" + pickerHour;
-//                }
-//                else{
-//                    hour = Integer.toString(pickerHour);
-//                }
-//                if(pickerMinute <10){
-//                    minute = "0" + pickerMinute;
-//                }
-//                else{
-//                    minute = Integer.toString(pickerMinute);
-//                }
-//
-//                time = hour + ":" + minute;
-
-                //tv.setText(setTimeText(pickerHour, pickerMinute));
-                //data.get(currentPosition).setValue(profile);
+            if (timeSet) {
                 getInstance().setTimeText(pickerHour, pickerMinute);
-
-                //tv.setText(time);
-
-
                 timeSet = false;
             }
-
         }
+
+
     }
 
     public void showTimePickerDialog(View v) {
@@ -444,278 +369,526 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
     }
 
 
-    /** BREAK LENGTH CHOOSE DIALOG **/
-
     public void ShowSeekDialog() {
-
-        final AlertDialog.Builder popDialog = new AlertDialog.Builder(this);
-        final SeekBar seek = new SeekBar(this);
-        seek.setMax(10);
-        seek.setProgress(6);
-
-
-
-        popDialog.setTitle("Set break length");
-        popDialog.setMessage("60m");
-        popDialog.setView(seek);
-
-        // OK button
-        popDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                //tv.setText((seek.getProgress() *10) + "m");
-                //tv.setText(setBreakLengthText(seek.getProgress() *10));
-                setBreakLengthText(seek.getProgress() *10);
-                dialog.dismiss();
-            }
-
-        });
-        // CANCEL button
-        popDialog.setNeutralButton("CANCEL", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-
-        });
-
-        final AlertDialog dialog = popDialog.create();
-        seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            int progress = 0;
-
-            public void onProgressChanged(SeekBar seekBar, int progressV, boolean fromUser) {
-                progress = progressV *10;
-            }
-
-            public void onStartTrackingTouch(SeekBar arg0) {
-
-            }
-
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                dialog.setMessage(setBreakLengthText(progress));
-            }
-        });
-
-        dialog.show();
+        BreakLengthDialog breakLengthDialog = new BreakLengthDialog();
+        breakLengthDialog.show(getSupportFragmentManager(), "breakLengthDialog");
     }
 
-    /** MODE NAME INPUT DIALOG **/
-    public void ShowNameDialog() {
+    /**
+     * BREAK LENGTH CHOOSE DIALOG
+     **/
 
-        final AlertDialog.Builder popDialog = new AlertDialog.Builder(this);
-        final EditText input = new EditText(this);
+    public static class BreakLengthDialog extends DialogFragment {
 
-        popDialog.setTitle("Set description");
-        input.setText("sss");
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            final AlertDialog.Builder popDialog = new AlertDialog.Builder(getActivity());
+            final SeekBar seek = new SeekBar(getActivity());
+            seek.setId(R.id.seek_bar);
+            seek.setMax(10);
+            seek.setProgress(((DetailsActivity) getActivity()).breakLength / 10);
 
-        popDialog.setView(input);
+            popDialog.setTitle("Set break length");
 
-        // OK button
-        popDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                //tv.setText(input.getText());
-                //tv.setText(setDescriptionText(input.getText().toString()));
-                setDescriptionText(input.getText().toString());
-                dialog.dismiss();
-            }
+            popDialog.setView(seek);
+            popDialog.setMessage(((DetailsActivity) getActivity()).breakLengthTextToString(((DetailsActivity) getActivity()).breakLength));
 
-        });
+            // OK button
+            popDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
 
-        // CANCEL button
-        popDialog.setNeutralButton("CANCEL", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
+                    ((DetailsActivity) getActivity()).setBreakLengthText(seek.getProgress() * 10);
+                    dialog.dismiss();
+                }
 
-        });
+            });
+            // CANCEL button
+            popDialog.setNeutralButton("CANCEL", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
 
-        final AlertDialog dialog = popDialog.create();
-        dialog.show();
+            });
+
+            final AlertDialog dialog = popDialog.create();
+
+            seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+                int progress = 0;
+
+                public void onProgressChanged(SeekBar seekBar, int progressV, boolean fromUser) {
+                    progress = progressV * 10;
+                    dialog.setMessage(((DetailsActivity) getActivity()).breakLengthTextToString(seek.getProgress() * 10));
+                }
+
+                public void onStartTrackingTouch(SeekBar arg0) {
+
+                }
+
+                public void onStopTrackingTouch(SeekBar seekBar) {
+                    dialog.setMessage(((DetailsActivity) getActivity()).setBreakLengthText(progress));
+                }
+            });
+
+
+            return dialog;
+        }
     }
 
-    /** MODE CHOOSE DIALOG **/
+    /**
+     * DELETE CONFIRMATION DIALOG
+     * */
+
+    public static class DeleteConfirmationDialog extends DialogFragment{
+        AlertDialog.Builder confirmationDialog;
+        TextView text;
+
+        @NonNull
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            confirmationDialog = new AlertDialog.Builder(getActivity());
+            text = new TextView(getActivity());
+            confirmationDialog.setTitle("Delete entry");
+            confirmationDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    //delete row
+                    getInstance().deleteBack();
+                }
+            });
+            confirmationDialog.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    // cancel
+                    dialog.dismiss();
+                }
+            });
+
+            return confirmationDialog.create();
+        }
+    }
+
+    private void showDeleteConfirmationDialog(){
+
+        DeleteConfirmationDialog dialog = new DeleteConfirmationDialog();
+        dialog.show(getSupportFragmentManager(), "deleteConfirmationDialog");
+    }
+
+    // show mode name dialog
+    private void ShowNameDialog() {
+        NameDialog nameDialog = new NameDialog();
+        nameDialog.show(getSupportFragmentManager(), "nameDialog");
+    }
+
+    /**
+     * MODE NAME INPUT DIALOG
+     **/
+    public static class NameDialog extends DialogFragment {
+        AlertDialog.Builder popDialog;
+        EditText input;
+
+        @NonNull
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            popDialog = new AlertDialog.Builder(getActivity());
+            input = new EditText(getActivity());
+            input.setId(R.id.edittext);
+
+            popDialog.setTitle("Set description");
+            if (((DetailsActivity) getActivity()).descriptionText != null) {
+                input.setText(((DetailsActivity) getActivity()).descriptionText);
+            }
+
+            popDialog.setView(input);
+
+            // OK button
+            popDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    ((DetailsActivity) getActivity()).setDescriptionText(input.getText().toString());
+                    dialog.dismiss();
+                }
+
+            });
+
+            // CANCEL button
+            popDialog.setNeutralButton("CANCEL", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+
+            });
+
+            return popDialog.create();
+        }
+    }
+
+    // show mode choose dialog
     public void ShowModeDialog() {
 
-        final AlertDialog.Builder popDialog = new AlertDialog.Builder(this);
-        final Spinner spinner = new Spinner(this);
-
-        popDialog.setTitle("Choose mode");
-
-        ArrayAdapter<?> adapter =
-                ArrayAdapter.createFromResource(this, R.array.modes, android.R.layout.simple_spinner_item);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-
-        spinner.setAdapter(adapter);
-        popDialog.setView(spinner);
-
-
-        // OK button
-        popDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-
-                //String[] choose = getResources().getStringArray(R.array.modes);
-                //tv.setText(choose[spinner.getSelectedItemPosition()]);
-
-                setSoundProfileText(spinner.getSelectedItemPosition());
-                //tv.setText(setSoundProfileText(spinner.getSelectedItemPosition()));
-                dialog.dismiss();
-            }
-
-        });
-
-        // CANCEL button
-        popDialog.setNeutralButton("CANCEL", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-
-        });
-
-        final AlertDialog dialog = popDialog.create();
-        dialog.show();
+        ModeDialog modeDialog = new ModeDialog();
+        modeDialog.show(getSupportFragmentManager(), "modeDialog");
     }
 
-
-    /** RECURRENCE PICKER DIALOG**/
-
-    public void showRecurrencePickerDialog(){
-
-        mSelectedItems = new ArrayList<Integer>();  // Where we track the selected items
-        workdays.add(0);
-        workdays.add(1);
-        workdays.add(2);
-        workdays.add(3);
-        workdays.add(4);
-
-        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+    /**
+     * MODE CHOOSE DIALOG
+     **/
+    public static class ModeDialog extends DialogFragment {
 
 
-//        LayoutInflater inflater = (LayoutInflater)this.getSystemService (Context.LAYOUT_INFLATER_SERVICE);
-//        View v = inflater.inflate(R.layout.recurrence_picker, null);
+        @NonNull
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            final AlertDialog.Builder popDialog = new AlertDialog.Builder(getActivity());
+            final Spinner spinner = new Spinner(getActivity());
+            spinner.setId(R.id.spinner);
+
+            popDialog.setTitle("Choose mode");
+
+            ArrayAdapter<?> adapter =
+                    ArrayAdapter.createFromResource(getActivity(), R.array.modes, android.R.layout.simple_spinner_item);
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+
+            spinner.setAdapter(adapter);
+            spinner.setSelection(((DetailsActivity) getActivity()).alarmMode);
+
+            popDialog.setView(spinner);
+
+
+            // OK button
+            popDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    ((DetailsActivity) getActivity()).setSoundProfileText(spinner.getSelectedItemPosition());
+                    dialog.dismiss();
+                }
+
+            });
+
+            // CANCEL button
+            popDialog.setNeutralButton("CANCEL", new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+
+            });
+
+            return popDialog.create();
+
+        }
+
+
+    }
+
+    public void showRecurrencePickerDialog() {
+        RecurrencePickerDialog recurrencePickerDialog = new RecurrencePickerDialog();
+        recurrencePickerDialog.show(getSupportFragmentManager(), "rec");
+    }
+
+    /**
+     * RECURRENCE PICKER DIALOG
+     **/
+    public static class RecurrencePickerDialog extends DialogFragment {
+        ArrayList mSelectedItems;
+        ArrayList workdays = new ArrayList();
+        RadioGroup radioGroup1;
+        RadioButton rbWorkDay;
+        RadioButton rbEveryDay;
+        RadioButton rbNotSelected;
+        ListView listView;
+        boolean[] repeat;
+
+        @NonNull
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            final AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            repeat = ((DetailsActivity) getActivity()).repeat.clone();
+
+            if (savedInstanceState != null) {
+                repeat = savedInstanceState.getBooleanArray("repeat_temp");
+            }
+
+            LayoutInflater inflater = (LayoutInflater) getActivity().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            View v = inflater.inflate(R.layout.recurrence_picker, null);
+
+            radioGroup1 = (RadioGroup) v.findViewById(R.id.recurrence_picker_radiogroup);
+            rbWorkDay = (RadioButton) v.findViewById(R.id.rb_wd);
+            rbEveryDay = (RadioButton) v.findViewById(R.id.rb_ed);
+            rbNotSelected = (RadioButton) v.findViewById(R.id.rb_ns);
+
+
+            //Calendar calendar = Calendar.getInstance();
+//            int week = calendar.get(Calendar.WEEK_OF_YEAR);
+//            //week = calendar.get(Calendar.WEEK_OF_MONTH);
+//            int date = calendar.get(Calendar.DATE);
 //
+//            System.out.println("WEEK NUMBER" + date);
 //
-//        final RadioGroup radioGroup = (RadioGroup) v.findViewById(R.id.recurrence_picker_radiogroup);
-//        final RadioButton rbWorkDay = (RadioButton) v.findViewById(R.id.rb_wd);
-//        final RadioButton rbEveryDay = (RadioButton) v.findViewById(R.id.rb_ed);
-//        final RadioButton rbNotSelected = (RadioButton) v.findViewById(R.id.rb_ns);
+//            String[] weeklyRepeatItems = getResources().getStringArray(R.array.repeat).clone();
+//            String nowIs;
 //
-//        radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-//            @Override
-//            public void onCheckedChanged(RadioGroup group, int checkedId) {
-//
-//                switch (checkedId){
-//                    case R.id.rb_wd:
-//
-//                       break;
-//                    case R.id.rb_ed:
-//
-//                        break;
-//                    case R.id.rb_ns:
-//
-//                        break;
-//                }
-//
+//            if (week % 2 == 0) {
+//                nowIs = "(this week is even)";
+//                weeklyRepeatItems[3] = weeklyRepeatItems[3] + " " + nowIs;
+//            } else {
+//                nowIs = "(this week is odd)";
+//                weeklyRepeatItems[2] = weeklyRepeatItems[2] + " " + nowIs;
 //            }
-//        });
 
 
-        // Set the dialog title
-        builder.setTitle("Repeat")
-  //              .setView(v)
-                //.setView(R.layout.recurrence_picker)
-                // Specify the list array, the items to be selected by default (null for none),
-                // and the listener through which to receive callbacks when items are selected
-                .setMultiChoiceItems(R.array.days, null,
-                        new DialogInterface.OnMultiChoiceClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which,
-                                                boolean isChecked) {
-                                if (isChecked) {
-                                    // If the user checked the item, add it to the selected items
-                                    mSelectedItems.add(which);
-                                } else if (mSelectedItems.contains(which)) {
-                                    // Else, if the item is already in the array, remove it
-                                    mSelectedItems.remove(Integer.valueOf(which));
-                                }
+            int repeatPos = ((DetailsActivity) getActivity()).repeatType;
+            long thisMonday = getThisMonday();
 
-//                                boolean noneOfThis = true;
+            //calendar.set(Calendar.)
+            long presavedTime = ((DetailsActivity) getActivity()).repeatStart;
+
+            System.out.println("TEST123 " + thisMonday + " - now" );
+            System.out.println("TEST123 " + presavedTime + " - start time" );
+
+            int weeksElapsed = (int) ((thisMonday - presavedTime) / (1000*60*60*24*7));
+
+            //int spinnerPos;
+
+//            if (weeksElapsed % 2 == 0) {
+//                spinnerPos = 4;
 //
-//                                if(mSelectedItems.isEmpty()){
-//                                    rbNotSelected.setChecked(true);
-//                                    noneOfThis = false;
-//                                }
-//                                if(mSelectedItems.size() == 7){
-//                                    rbEveryDay.setChecked(true);
-//                                    noneOfThis = false;
-//                                }
-//                                if(mSelectedItems.containsAll(workdays) && mSelectedItems.size() == 5){
-//                                    rbWorkDay.setChecked(true);
-//                                    noneOfThis = false;
-//                                }
-//                                if(noneOfThis){
-//                                    rbNotSelected.setChecked(false);
-//                                    rbWorkDay.setChecked(false);
-//                                    rbEveryDay.setChecked(false);
-//                                }
+//            } else {
+//                spinnerPos = 3;
+//            }
+
+
+
+            final Spinner repeatSpinner = (Spinner) v.findViewById(R.id.repeat_spinner);
+            ArrayAdapter<?> spinnerAdapter = ArrayAdapter.createFromResource(getActivity(), R.array.repeat, android.R.layout.simple_spinner_item);
+            //ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_item, weeklyRepeatItems);
+            spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            repeatSpinner.setAdapter(spinnerAdapter);
+            //repeatSpinner.setSelection();
+
+            // if saved
+            if(repeatPos == 2 || repeatPos == 3){
+                if (weeksElapsed % 2 == 0) {
+                    repeatPos = 2;
+                    System.out.println("TEST123 " + weeksElapsed + " repeatPos = " + repeatPos);
+
+                } else {
+                    repeatPos = 3;
+                    System.out.println("TEST123 " + weeksElapsed + " repeatPos = " + repeatPos);
+                }
+            }
+            repeatSpinner.setSelection(repeatPos);
+
+
+
+
+            // Set the dialog title
+            builder.setTitle("Repeat")
+                    .setView(v)
+                    .setMultiChoiceItems(R.array.days, repeat, null)
+
+                    // Set the action buttons
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int id) {
+
+                            listCheck(listView);
+                            ((DetailsActivity) getActivity()).data.get(currentPosition)
+                                    .setValue(((DetailsActivity) getActivity()).repeatTextToString(((DetailsActivity) getActivity()).repeat));
+
+                            //setRepeatStartTime();
+                            int spinnerPos = repeatSpinner.getSelectedItemPosition();
+
+                            System.out.println();
+
+
+                            switch (spinnerPos){
+                                case 2:
+                                    // save time of current week beginning
+                                    // spinnerPos = 3
+                                    setRepeatStartTime(true);
+
+                                    break;
+                                case 3:
+                                    // save time of next week beginning
+                                    // spinnerPos = 4
+                                    setRepeatStartTime(false);
+                                    break;
+
                             }
+                            ((DetailsActivity) getActivity()).repeatType = spinnerPos;
 
-                        })
+                            ((DetailsActivity) getActivity()).listAdapter.notifyDataSetChanged();
 
-                // Set the action buttons
-                .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int id) {
-                        // User clicked OK, so save the mSelectedItems results somewhere
-                        // or return them to the component that opened the dialog
-//                        String repDays ="";
-//
-//                        for(int i =0; i <mSelectedItems.size(); i++){
-//                            String day = getResources().getStringArray(R.array.days)[i];
-//                            if(i < mSelectedItems.size() - 1){
-//                                repDays = repDays + day.substring(0,3) + ", ";
-//                            }
-//                            else{
-//                                repDays = repDays + day.substring(0,3);
-//                            }
-//                        }
+                        }
+                    })
 
-                        //tv.setText(setRepeatText(mSelectedItems));
-                        setRepeatText(mSelectedItems);
+                    .setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int id) {
+                            dialog.dismiss();
+                        }
+                    });
 
+
+            AlertDialog dialog = builder.create();
+
+            listView = dialog.getListView();
+            //listView.setId(R.id.list_view);
+
+
+            rbWorkDay.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    for (int i = 0; i < 5; i++) {
+                        if (!listView.isItemChecked(i)) {
+                            listView.performItemClick(listView, i, 0);
+                        }
                     }
-                })
-                .setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int id) {
-
+                    for (int y = 5; y < 7; y++) {
+                        if (listView.isItemChecked(y)) {
+                            listView.performItemClick(listView, y, 0);
+                        }
                     }
-                });
+                    radioGroup1.check(R.id.rb_wd);
+                }
+            });
 
+            rbEveryDay.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    for (int i = 0; i < 7; i++) {
+                        if (!listView.isItemChecked(i)) {
+                            listView.performItemClick(listView, i, 0);
+                        }
+                    }
+                    radioGroup1.check(R.id.rb_ed);
+                }
+            });
 
-        builder.create();
-        builder.show();
+            rbNotSelected.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    for (int i = 0; i < 7; i++) {
+                        if (listView.isItemChecked(i)) {
+                            listView.performItemClick(listView, i, 0);
+                        }
+                    }
+                    radioGroup1.check(R.id.rb_ns);
+                }
+            });
+
+            workdays.add(0);
+            workdays.add(1);
+            workdays.add(2);
+            workdays.add(3);
+            workdays.add(4);
+
+            mSelectedItems = new ArrayList<>();
+            for (int i = 0; i < repeat.length; i++) {
+                if (repeat[i]) {
+                    mSelectedItems.add(i);
+                }
+            }
+            checkRadioButtons();
+
+            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                    boolean isChecked = listView.isItemChecked(position);
+                    if (isChecked) {
+
+                        // If the user checked the item, add it to the selected items
+                        repeat[position] = true;
+                        mSelectedItems.add(position);
+
+                    } else {
+
+                        if (mSelectedItems.contains(position)) {
+                            // Else, if the item is already in the array, remove it
+                            repeat[position] = false;
+                            mSelectedItems.remove(Integer.valueOf(position));
+                        }
+                    }
+
+                    checkRadioButtons();
+                }
+            });
+
+            return dialog;
+        }
+
+        @Override
+        public void onSaveInstanceState(Bundle outState) {
+            outState.putBooleanArray("repeat_temp", repeat);
+            super.onSaveInstanceState(outState);
+        }
+
+        private void listCheck(ListView listView) {
+            for (int i = 0; i < listView.getCount(); i++) {
+                ((DetailsActivity) getActivity()).repeat[i] = listView.isItemChecked(i);
+            }
+        }
+
+        private void setRepeatStartTime(boolean thisWeek){
+
+            if(thisWeek) {
+                ((DetailsActivity) getActivity()).repeatStart = getThisMonday();
+            }
+            else{
+                ((DetailsActivity) getActivity()).repeatStart = getThisMonday() + (1000*60*60*24*7);
+            }
+            //System.out.println( "TEST123 " + calendar.getTimeInMillis());
+        }
+
+        private long getThisMonday(){
+            Calendar calendar = Calendar.getInstance();
+            calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.MILLISECOND, 0);
+            return calendar.getTimeInMillis();
+        }
+
+        private void checkRadioButtons() {
+            boolean noneOfThis = true;
+            if (mSelectedItems.isEmpty()) {
+                rbNotSelected.setChecked(true);
+                noneOfThis = false;
+            }
+            if (mSelectedItems.size() == 7) {
+                rbEveryDay.setChecked(true);
+                noneOfThis = false;
+            }
+            if (mSelectedItems.containsAll(workdays)
+                    && mSelectedItems.size() == 5) {
+                rbWorkDay.setChecked(true);
+                noneOfThis = false;
+            }
+            if (noneOfThis) {
+                radioGroup1.clearCheck();
+            }
+        }
     }
 
-    public String setTimeText(int hour, int minute){
+
+    public String setTimeText(int hour, int minute) {
         String h;
         String m;
         String time;
-        if(hour < 10){
+        if (hour < 10) {
             h = "0" + hour;
-        }
-        else{
+        } else {
             h = Integer.toString(hour);
         }
-        if(minute <10){
+        if (minute < 10) {
             m = "0" + minute;
-        }
-        else{
+        } else {
             m = Integer.toString(minute);
         }
 
         time = h + ":" + m;
 
-        //textValues.set(currentPosition, time);
         data.get(currentPosition).setValue(time);
-        switch (currentPosition){
+        switch (currentPosition) {
             case 0:
                 startHour = hour;
                 startMinute = minute;
@@ -734,56 +907,25 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         return time;
     }
 
-    public String setBreakLengthText(int length){
+    public String setBreakLengthText(int length) {
         String l;
-        if(length < 60){
+        if (length < 60) {
             l = length + "m";
-        }
-        else{
+        } else {
             l = length / 60 + "h" + " " + length % 60 + "m";
         }
 
-        //textValues.set(currentPosition, l);
         data.get(currentPosition).setValue(l);
         breakLength = length;
         listAdapter.notifyDataSetChanged();
         return l;
     }
 
-    public String setRepeatText(ArrayList<Integer> days){
 
-        Collections.sort(days);
-
-        String d ="";
-
-        for(int i =0; i <days.size(); i++){
-
-            String day = getResources().getStringArray(R.array.days)[days.get(i)];
-
-            if(i < days.size() - 1){
-                d = d + day.substring(0,3) + ", ";
-            }
-            else{
-                d = d + day.substring(0,3);
-            }
-        }
-        //textValues.set(currentPosition, d);
-        data.get(currentPosition).setValue(d);
-
-        for(int i: days){
-            repeat[i] = true;
-        }
-
-        listAdapter.notifyDataSetChanged();
-
-        return d;
-    }
-
-    public String setSoundProfileText(int i){
+    public String setSoundProfileText(int i) {
 
         String[] profiles = getResources().getStringArray(R.array.modes);
         String profile = profiles[i];
-        //textValues.set(currentPosition, profile);
         data.get(currentPosition).setValue(profile);
         alarmMode = i;
         listAdapter.notifyDataSetChanged();
@@ -792,8 +934,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         return profile;
     }
 
-    public String setDescriptionText(String description){
-        //textValues.set(currentPosition, description);
+    public String setDescriptionText(String description) {
         data.get(currentPosition).setValue(description);
         descriptionText = description;
         listAdapter.notifyDataSetChanged();
@@ -801,24 +942,22 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         return description;
     }
 
-    public static DetailsActivity getInstance(){
+    public static DetailsActivity getInstance() {
         return (DetailsActivity) currentActivity;
     }
 
-    private String timeToString(int hour, int minute){
+    private String timeToString(int hour, int minute) {
         String h;
         String m;
         String time;
-        if(hour < 10){
+        if (hour < 10) {
             h = "0" + hour;
-        }
-        else{
+        } else {
             h = Integer.toString(hour);
         }
-        if(minute <10){
+        if (minute < 10) {
             m = "0" + minute;
-        }
-        else{
+        } else {
             m = Integer.toString(minute);
         }
 
@@ -827,18 +966,17 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         return time;
     }
 
-    private String soundProfileToString(int i){
+    private String soundProfileToString(int i) {
         String[] profiles = getResources().getStringArray(R.array.modes);
-        String profile = profiles[i];
-        return profile;
+        return profiles[i];
     }
 
-    private String repeatTextToString(boolean[] days){
+    private String repeatTextToString(boolean[] days) {
 
-        String d ="";
+        String d = "";
 
-        for(int i =0; i <days.length; i++){
-            if(days[i]) {
+        for (int i = 0; i < days.length; i++) {
+            if (days[i]) {
 
                 String day = getResources().getStringArray(R.array.days)[i];
 
@@ -850,106 +988,109 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             }
         }
 
-        if(d.lastIndexOf(',') == d.length() - 2 && d.length()!= 0){
+        if (d.lastIndexOf(',') == d.length() - 2 && d.length() != 0) {
 
-            d = d.substring(0,d.length() - 2);
+            d = d.substring(0, d.length() - 2);
         }
 
         return d;
     }
 
-    private String breakLengthTextToString(int length){
-        String l;
-        if(length < 60){
+    private String breakLengthTextToString(int length) {
+        String l = "";
+        if (length < 60) {
             l = length + "m";
         }
-        else{
+        if (length == 60) {
+            l = "1h";
+        }
+        if (length > 60) {
             l = length / 60 + "h" + " " + length % 60 + "m";
         }
         return l;
     }
 
-    private String summaryString(){
-        if(descriptionText!= null && !descriptionText.equals("")){
-            return descriptionText;
-        }
-        else{
-            return timeToString(startHour, startMinute) + " - " + timeToString(endHour, endMinute);
-        }
+    private String timeSummaryString() {
+        return timeToString(startHour, startMinute) + " - " + timeToString(endHour, endMinute);
     }
 
 
-
-    private boolean[] intToBooleanArray(int[] array){
+    private boolean[] intToBooleanArray(int[] array) {
         boolean[] boolArray = {false, false, false, false, false, false, false};
 
-        for (int i = 0; i < boolArray.length; i++){
-            if(array[i] == 1){
+        for (int i = 0; i < boolArray.length; i++) {
+            if (array[i] == 1) {
                 boolArray[i] = true;
             }
         }
         return boolArray;
     }
 
-    private int booleanToInt(boolean b){
-        if(b){
+    private int booleanToInt(boolean b) {
+        if (b) {
             return 1;
         }
         return 0;
     }
 
-    private void getDbData(){
+    private void getDbData() {
 
         dbHelper = new ModeSwitcherDbHelper(this);
         db = dbHelper.getWritableDatabase();
 
         String selection = "_ID" + "=?";
-        String[] selectionArgs = new String[] { String.valueOf(id) };
+        String[] selectionArgs = new String[]{String.valueOf(id)};
 
         Cursor cursor = db.query(dataEntry.TABLE_NAME, null, selection, selectionArgs, null, null, null);
 
         cursor.moveToFirst();
 
-            int startHourIndex = cursor.getColumnIndex(dataEntry.COLUMN_START_HOUR);
-            int startMinuteIndex = cursor.getColumnIndex(dataEntry.COLUMN_START_MINUTE);
-            int breakStartHourIndex = cursor.getColumnIndex(dataEntry.COLUMN_BREAK_START_HOUR);
-            int breakStartMinuteIndex = cursor.getColumnIndex(dataEntry.COLUMN_BREAK_START_MINUTE);
-            int endHourIndex = cursor.getColumnIndex(dataEntry.COLUMN_END_HOUR);
-            int endMinuteIndex = cursor.getColumnIndex(dataEntry.COLUMN_END_MINUTE);
-            int breakLengthIndex = cursor.getColumnIndex(dataEntry.COLUMN_BREAK_LENGTH);
-            int alarmModeIndex = cursor.getColumnIndex(dataEntry.COLUMN_ALARM_MODE);
-            int descriptionIndex = cursor.getColumnIndex(dataEntry.COLUMN_DESCRIPTION);
-            int repeatMondayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_MONDAY);
-            int repeatTuesdayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_TUESDAY);
-            int repeatWednesdayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_WEDNESDAY);
-            int repeatThursdayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_THURSDAY);
-            int repeatFridayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_FRIDAY);
-            int repeatSaturdayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_SATURDAY);
-            int repeatSundayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_SUNDAY);
+        int startHourIndex = cursor.getColumnIndex(dataEntry.COLUMN_START_HOUR);
+        int startMinuteIndex = cursor.getColumnIndex(dataEntry.COLUMN_START_MINUTE);
+        int breakStartHourIndex = cursor.getColumnIndex(dataEntry.COLUMN_BREAK_START_HOUR);
+        int breakStartMinuteIndex = cursor.getColumnIndex(dataEntry.COLUMN_BREAK_START_MINUTE);
+        int endHourIndex = cursor.getColumnIndex(dataEntry.COLUMN_END_HOUR);
+        int endMinuteIndex = cursor.getColumnIndex(dataEntry.COLUMN_END_MINUTE);
+        int breakLengthIndex = cursor.getColumnIndex(dataEntry.COLUMN_BREAK_LENGTH);
+        int alarmModeIndex = cursor.getColumnIndex(dataEntry.COLUMN_ALARM_MODE);
+        int descriptionIndex = cursor.getColumnIndex(dataEntry.COLUMN_DESCRIPTION);
+        int repeatMondayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_MONDAY);
+        int repeatTuesdayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_TUESDAY);
+        int repeatWednesdayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_WEDNESDAY);
+        int repeatThursdayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_THURSDAY);
+        int repeatFridayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_FRIDAY);
+        int repeatSaturdayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_SATURDAY);
+        int repeatSundayIndex = cursor.getColumnIndex(dataEntry.COLUMN_REPEAT_SUNDAY);
+        int repeatTypeIndex = cursor.getColumnIndex(dataEntry.COLUMN_WEEKLY_REPEAT_TYPE);
+        int repeatTimeIndex = cursor.getColumnIndex(dataEntry.COLUMN_WEEKLY_REPEAT_BEGINNING);
 
 
-            startHour = cursor.getInt(startHourIndex);
-            startMinute = cursor.getInt(startMinuteIndex);
-            breakStartHour = cursor.getInt(breakStartHourIndex);
-            breakStartMinute = cursor.getInt(breakStartMinuteIndex);
-            endHour = cursor.getInt(endHourIndex);
-            endMinute = cursor.getInt(endMinuteIndex);
-            breakLength = cursor.getInt(breakLengthIndex);
-            alarmMode = cursor.getInt(alarmModeIndex);
-            descriptionText = cursor.getString(descriptionIndex);
 
-            int[] repeatArray = {cursor.getInt(repeatMondayIndex), cursor.getInt(repeatTuesdayIndex),
-                    cursor.getInt(repeatWednesdayIndex), cursor.getInt(repeatThursdayIndex),
-                    cursor.getInt(repeatFridayIndex), cursor.getInt(repeatSaturdayIndex),
-                    cursor.getInt(repeatSundayIndex)};
-            repeat = intToBooleanArray(repeatArray);
+        startHour = cursor.getInt(startHourIndex);
+        startMinute = cursor.getInt(startMinuteIndex);
+        breakStartHour = cursor.getInt(breakStartHourIndex);
+        breakStartMinute = cursor.getInt(breakStartMinuteIndex);
+        endHour = cursor.getInt(endHourIndex);
+        endMinute = cursor.getInt(endMinuteIndex);
+        breakLength = cursor.getInt(breakLengthIndex);
+        alarmMode = cursor.getInt(alarmModeIndex);
+        descriptionText = cursor.getString(descriptionIndex);
+        repeatType = cursor.getInt(repeatTypeIndex);
+        repeatStart = cursor.getLong(repeatTimeIndex);
+
+
+        int[] repeatArray = {cursor.getInt(repeatMondayIndex), cursor.getInt(repeatTuesdayIndex),
+                cursor.getInt(repeatWednesdayIndex), cursor.getInt(repeatThursdayIndex),
+                cursor.getInt(repeatFridayIndex), cursor.getInt(repeatSaturdayIndex),
+                cursor.getInt(repeatSundayIndex)};
+        repeat = intToBooleanArray(repeatArray);
 
 
         cursor.close();
         dbHelper.close();
     }
 
-    private void putDbData(){
+    private void putDbData() {
 
         dbHelper = new ModeSwitcherDbHelper(this);
         db = dbHelper.getWritableDatabase();
@@ -973,33 +1114,68 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         cv.put(dataEntry.COLUMN_REPEAT_SUNDAY, booleanToInt(repeat[6]));
 
         cv.put(dataEntry.COLUMN_DESCRIPTION, descriptionText);
-        cv.put(dataEntry.COLUMN_SUMMARY, summaryString());
+        cv.put(dataEntry.COLUMN_SUMMARY, timeSummaryString());
         cv.put(dataEntry.COLUMN_REPEAT_STRING, repeatTextToString(repeat));
 
-        if(isNew()){
-            db.insertOrThrow(dataEntry.TABLE_NAME, null, cv);
-        }
-        else {
+        cv.put(dataEntry.COLUMN_WEEKLY_REPEAT_TYPE, repeatType);
+        cv.put(dataEntry.COLUMN_WEEKLY_REPEAT_BEGINNING, repeatStart);
+//        cv.put(dataEntry.COLUMN_ALARM_START_ID, 0);
+//        cv.put(dataEntry.COLUMN_ALARM_END_ID, 0);
+
+        cv.put(dataEntry.COLUMN_STATE, 1);
+
+        //cv.put(dataEntry.COLUMN_STATE, 1);
+
+        if (isNew()) {
+            id = db.insertOrThrow(dataEntry.TABLE_NAME, null, cv);
+        } else {
             String whereClause = "_ID=?";
-            String[] whereArgs = new String[] { String.valueOf(id) };
-            db.update(dataEntry.TABLE_NAME,cv, whereClause, whereArgs);
+            String[] whereArgs = new String[]{String.valueOf(id)};
+            db.update(dataEntry.TABLE_NAME, cv, whereClause, whereArgs);
         }
 
         dbHelper.close();
     }
 
-    private void deleteDbEntry(){
-        dbHelper = new ModeSwitcherDbHelper(this);
-        db = dbHelper.getWritableDatabase();
-        String whereClause = "_ID=?";
-        String[] whereArgs = new String[] { String.valueOf(id) };
-        db.delete(dataEntry.TABLE_NAME, whereClause, whereArgs);
+//    private void deleteDbEntry() {
+//        dbHelper = new ModeSwitcherDbHelper(this);
+//        db = dbHelper.getWritableDatabase();
+//        String whereClause = "_ID=?";
+//        String[] whereArgs = new String[]{String.valueOf(id)};
+//        db.delete(dataEntry.TABLE_NAME, whereClause, whereArgs);
+//        dbHelper.close();
+//    }
 
-        dbHelper.close();
+
+    // return true if entry id == -1 to check if it is a new entry
+    private boolean isNew() {
+        return id == -1;
     }
 
-    private boolean isNew(){
-        return id == -1;
+
+    // go to previous activity without saving
+    private void goBack() {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
+    }
+
+    // save entry to db, and go back
+    private void doneBack(){
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra("status", "turn_on");
+        intent.putExtra("rowId", (int)id);
+        startActivity(intent);
+    }
+
+    // go back and delete row from db
+    private void deleteBack(){
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        intent.putExtra("rowId", (int)id);
+        intent.putExtra("status", "delete");
+        startActivity(intent);
     }
 
 }

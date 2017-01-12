@@ -25,6 +25,13 @@
             android:text="111"
             android:lineSpacingExtra="8sp" />
 
+        <TextView android:id="@+id/list_item_with_button_text3"
+            android:layout_width="match_parent"
+            android:textSize="16sp"
+            android:layout_height="wrap_content"
+
+            android:lineSpacingExtra="8sp" />
+
     </LinearLayout>
 
     <View
@@ -32,15 +39,24 @@
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <ImageButton
-        android:id="@+id/image_button"
-
-        android:layout_gravity="center_vertical"
+    <ToggleButton
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:id="@+id/toggleButton"
+        android:layout_gravity="center_vertical"
+        />
 
-        android:adjustViewBounds="true"
-        android:scaleType="fitCenter"
-        android:src="@android:drawable/btn_dialog" />
+    <!--<ImageButton-->
+        <!--android:id="@+id/image_button"-->
+
+        <!--android:layout_gravity="center_vertical"-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+
+        <!--android:adjustViewBounds="true"-->
+        <!--android:scaleType="fitCenter"-->
+        <!--android:background="@null"-->
+
+         <!--/>-->
 
 </LinearLayout>

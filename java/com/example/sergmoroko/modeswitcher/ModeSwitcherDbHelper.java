@@ -12,12 +12,16 @@ import com.example.sergmoroko.modeswitcher.ModeSwitcherDbContract.dataEntry;
 
 public class ModeSwitcherDbHelper extends SQLiteOpenHelper {
 
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 9;
 
     private static final String DATABASE_NAME = "settings.db";
 
     public ModeSwitcherDbHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+    }
+
+    public ModeSwitcherDbHelper() {
+        super(null, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
     @Override
@@ -41,8 +45,14 @@ public class ModeSwitcherDbHelper extends SQLiteOpenHelper {
                         dataEntry.COLUMN_REPEAT_FRIDAY + " INTEGER NOT NULL, " +
                         dataEntry.COLUMN_REPEAT_SATURDAY + " INTEGER NOT NULL, " +
                         dataEntry.COLUMN_REPEAT_SUNDAY + " INTEGER NOT NULL, " +
+                        dataEntry.COLUMN_STATE + " INTEGER NOT NULL, " +
                         dataEntry.COLUMN_SUMMARY + " TEXT, " +
                         dataEntry.COLUMN_REPEAT_STRING + " TEXT, " +
+                        dataEntry.COLUMN_WEEKLY_REPEAT_TYPE + " INTEGER NOT NULL, " +
+                        dataEntry.COLUMN_WEEKLY_REPEAT_BEGINNING + " INTEGER NOT NULL, " +
+                        dataEntry.COLUMN_ALARM_START_ID + " INTEGER, " +
+                        dataEntry.COLUMN_ALARM_END_ID + " INTEGER, " +
+                        dataEntry.COLUMN_ALRMS_LEFT_QTY + " INTEGER, " +
                         dataEntry.COLUMN_DESCRIPTION + " TEXT" + ");";
 
         db.execSQL(SQL_CREATE_SETTINGS_TABLE);
