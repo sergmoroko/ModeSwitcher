@@ -97,6 +97,12 @@
     <string name="recurrence_picker_every_day">every day</string>
     <string name="recurrence_picker_not_selected">not selected</string>
 
+    Settings
+    <string name="settings_pre_switching_summary">Switch profile to silent/vibrate with 5m pre-delay</string>
+    <string name="settings_pre_switching_title">Pre-switching</string>
+    <string name="settings_post_switching_summary">Switch sound profile to normal with 5m post-delay</string>
+    <string name="settings_post_switching_title">Post-switching</string>
+
 </resources>
 
 

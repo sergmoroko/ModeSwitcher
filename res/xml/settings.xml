@@ -5,13 +5,13 @@
 
     <CheckBoxPreference
         android:key="pre_delay_enabled"
-        android:summary="Switch profile to silent/vibrate with 5m pre-delay"
-        android:title="Pre-switching" />
+        android:summary="@string/settings_pre_switching_summary"
+        android:title="@string/settings_pre_switching_title" />
 
 
     <CheckBoxPreference
         android:key="post_delay_enabled"
-        android:summary="Switch sound profile to normal with 5m post-delay"
-        android:title="Post-switching" />
+        android:summary="@string/settings_post_switching_summary"
+        android:title="@string/settings_post_switching_title" />
 
 </PreferenceScreen>
