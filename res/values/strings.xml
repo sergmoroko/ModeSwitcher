@@ -17,24 +17,14 @@
         <item>Sunday</item>
     </string-array>
 
-    <string-array name="detailsTitles">
-        <item>Start Time</item>
-        <item>Break Time</item>
-        <item>Break Length</item>
-        <item>End Time</item>
-        <item>Repeat</item>
-        <item>Mode</item>
-        <item>Name</item>
-    </string-array>
-
-    <string-array name="detailsDefaultData">
-        <item>--:--</item>
-        <item>--:--</item>
-        <item>1 h</item>
-        <item>--:--</item>
-        <item>-----</item>
-        <item>mode name</item>
-        <item> </item>
+    <string-array name="days_short">
+        <item>Mon</item>
+        <item>Tue</item>
+        <item>Wed</item>
+        <item>Thu</item>
+        <item>Fri</item>
+        <item>Sat</item>
+        <item>Sun</item>
     </string-array>
 
     <string-array name="repeat">
@@ -44,7 +34,69 @@
         <item>Repeat every 2 weeks including next</item>
     </string-array>
 
-    <string name="ddd">"???" value</string>
+    <string name="minute">m</string>
+    <string name="hour">h</string>
+    <string name="one_hour">1h</string>
+    <string name="time_delimiter">":"</string>
+    <string name="summary_time_delimiter">" - "</string>
+    <string name="break_length_delimiter">" "</string>
+
+    Repeat dialog
+    <string name="recurrence_dialog_cancel">CANCEL</string>
+    <string name="recurrence_dialog_ok">OK</string>
+    <string name="recurrence_dialog_title">Set repeating</string>
+
+    Sound profile dialog
+    <string name="ringer_mode_dialog_cancel">CANCEL</string>
+    <string name="ringer_mode_dialog_ok">OK</string>
+    <string name="ringer_mode_dialog_title">Choose sound profile</string>
+
+    Description dialog
+    <string name="description_dialog_cancel">CANCEL</string>
+    <string name="description_dialog_ok">OK</string>
+    <string name="description_dialog_title">Set description</string>
+
+    Delete confirmation dialog
+    <string name="delete_confirmation_dialog_cancel">CANCEL</string>
+    <string name="delete_confirmation_dialog_ok">OK</string>
+    <string name="delete_confirmation_dialog_title">Delete entry?</string>
+
+    Break length dialog
+    <string name="break_length_dialog_cancel">CANCEL</string>
+    <string name="break_length_dialog_ok">OK</string>
+    <string name="break_length_dialog_title">Set break length</string>
+
+    Time picking dialogs
+    <string name="start_time_dialog_title">Set start time</string>
+    <string name="break_time_dialog_title">Set break beginning time</string>
+    <string name="end_time_dialog_title">Set end time</string>
+
+    ListView titles
+    <string name="start_time_title">Start Time</string>
+    <string name="break_time_title">Break Time</string>
+    <string name="break_length_title">Break Length</string>
+    <string name="end_time_title">End Time</string>
+    <string name="repeat_title">Repeat</string>
+    <string name="sound_profile_title">Sound Profile</string>
+    <string name="description_title">Description (optional)</string>
+
+    Details activity
+    <string name="details_cancel_button">CANCEL</string>
+    <string name="details_done_button">DONE</string>
+    <string name="details_delete_button">DELETE</string>
+
+    Main Activity
+    <string name="main_add_new_button">ADD NEW</string>
+
+    List Item
+    <string name="list_item_name">name</string>
+    <string name="list_item_value">value</string>
+
+    Recurrence Picker
+    <string name="recurrence_picker_working_days">working days</string>
+    <string name="recurrence_picker_every_day">every day</string>
+    <string name="recurrence_picker_not_selected">not selected</string>
+
 </resources>
 
 

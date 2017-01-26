@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.sergmoroko.modeswitcher">
+    package="com.example.sergmoroko.profileSwitcher">
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/test_icon1"
+        android:icon="@mipmap/profile_switcher_launcher_icon"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
-        <activity android:name=".MainActivity">
+        <activity android:name="com.example.sergmoroko.profileSwitcher.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -19,21 +19,21 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".DetailsActivity">
+        <activity android:name="com.example.sergmoroko.profileSwitcher.DetailsActivity">
 
         </activity>
 
         <activity
-            android:name=".SettingsActivity"
+            android:name="com.example.sergmoroko.profileSwitcher.SettingsActivity"
             android:label="Settings" />
 
-        <receiver android:name=".AlarmReceiver" />
+        <receiver android:name="com.example.sergmoroko.profileSwitcher.AlarmReceiver" />
         <service
-            android:name=".AlarmService"
+            android:name="com.example.sergmoroko.profileSwitcher.AlarmService"
             android:enabled="true" />
 
         <receiver
-            android:name=".BootReceiver"
+            android:name="com.example.sergmoroko.profileSwitcher.BootReceiver"
             android:enabled="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

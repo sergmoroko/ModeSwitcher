@@ -8,24 +8,24 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_horizontal"
-        android:id="@+id/recurrence_picker_radiogroup"
+        android:id="@+id/recurrence_picker_radio_group"
         android:layout_marginTop="10dp">
         <RadioButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="working days"
+            android:text="@string/recurrence_picker_working_days"
             android:id="@+id/rb_wd"
             />
         <RadioButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="every day"
+            android:text="@string/recurrence_picker_every_day"
             android:id="@+id/rb_ed"
             />
         <RadioButton
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="not selected"
+            android:text="@string/recurrence_picker_not_selected"
             android:id="@+id/rb_ns"
             />
     </RadioGroup>

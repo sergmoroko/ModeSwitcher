@@ -1,23 +1,18 @@
-package com.example.sergmoroko.modeswitcher;
+package com.example.sergmoroko.profileSwitcher;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 
-/**
- * Created by ssss on 28.11.2016.
- */
-
-public class BootReceiver extends BroadcastReceiver{
+// class receives device boot event, and sets alarms
+public class BootReceiver extends BroadcastReceiver {
 
     AlarmReceiver alarm = new AlarmReceiver();
 
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED"))
-        {
-            //// TODO: 20.12.2016 bulk alarms set
+        if (intent.getAction().equals("android.intent.action.BOOT_COMPLETED")) {
             alarm.setBulkAlarms(context);
         }
     }

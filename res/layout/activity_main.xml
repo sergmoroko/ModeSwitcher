@@ -1,25 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context="com.example.sergmoroko.modeswitcher.MainActivity"
+    tools:context="com.example.sergmoroko.profileSwitcher.MainActivity"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
 
     <ListView
-        android:id="@+id/listview"
+        android:id="@+id/listView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="10dp"
         android:layout_weight="1"
         android:clickable="true"/>
     <Button
-        android:text="ADD NEW"
+        android:text="@string/main_add_new_button"
         android:id="@+id/main_activity_add_new_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="0"
         android:layout_margin="10dp"/>
 </LinearLayout>
-    <!--android:divider="#000000"-->
-    <!--android:dividerHeight="1dp"-->

@@ -1,4 +1,4 @@
-package com.example.sergmoroko.modeswitcher;
+package com.example.sergmoroko.profileSwitcher;
 
 import android.app.AlarmManager;
 import android.app.PendingIntent;
@@ -12,80 +12,62 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.preference.PreferenceManager;
 import android.support.v4.content.WakefulBroadcastReceiver;
-import android.util.Log;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 
-/**
- * Created by ssss on 28.11.2016.
- */
 
 public class AlarmReceiver extends WakefulBroadcastReceiver {
 
     private ModeSwitcherDbHelper dbHelper;
     private SQLiteDatabase db;
 
-    AlarmManager alarmManager;
+    private AlarmManager alarmManager;
     private PendingIntent pendingIntent;
 
-    int startHour = 0;
-    int startMinute = 0;
-    int breakStartHour = 0;
-    int breakStartMinute = 0;
-    int endHour = 0;
-    int endMinute = 0;
-    int breakLength = 0;
-    int alarmMode = 0;
-    boolean[] repeat = {false, false, false, false, false, false, false};
-    int alarmStartId = 0;
-    int alarmEndId = 0;
-    int repeatType =0;
-    private long currentLast;
-    private int alarmsQty =0;
+    private int startHour = 0;
+    private int startMinute = 0;
+    private int breakStartHour = 0;
+    private int breakStartMinute = 0;
+    private int endHour = 0;
+    private int endMinute = 0;
+    private int breakLength = 0;
+    private int alarmMode = 0;
+    private boolean[] repeat = {false, false, false, false, false, false, false};
+    private int alarmStartId = 0;
+    private int alarmEndId = 0;
+    private int repeatType = 0;
+    private int alarmsQty = 0;
 
 
     @Override
     public void onReceive(final Context context, Intent intent) {
-        Log.d("test1" , "alarmReceiver onReceive called");
 
-
-        String mode = intent.getStringExtra("mode");
-        int id = intent.getIntExtra("_id", 0);
-        int repeatType = intent.getIntExtra("repeatType", 0);
-
-        System.out.println("test1 INTENT TEST IN ONRECEIVE " + mode);
+        String mode = intent.getStringExtra(Constants.INTENT_EXTRA_MODE);
+        int id = intent.getIntExtra(Constants.INTENT_EXTRA_ID, 0);
+        int repeatType = intent.getIntExtra(Constants.INTENT_EXTRA_REPEAT_TYPE, 0);
 
         Intent service = new Intent(context, AlarmService.class);
 
-        service.putExtra("mode", mode);
-        service.putExtra("_id", id);
-        service.putExtra("repeatType", repeatType);
+        service.putExtra(Constants.INTENT_EXTRA_MODE, mode);
+        service.putExtra(Constants.INTENT_EXTRA_ID, id);
+        service.putExtra(Constants.INTENT_EXTRA_REPEAT_TYPE, repeatType);
 
         startWakefulService(context, service);
 
     }
 
-    private void getDbData(Context context, int rowId){
-
-        Log.d("test1" , "getDBdata called");
+    private void getDbData(Context context, int rowId) {
 
         dbHelper = new ModeSwitcherDbHelper(context);
         db = dbHelper.getWritableDatabase();
 
-        String selection = "_ID" + "=?";
+        String selection = Constants.WHERE_CLAUSE_ROW_ID;
         String[] selectionArgs = new String[]{String.valueOf(rowId)};
 
         Cursor cursor = db.query(ModeSwitcherDbContract.dataEntry.TABLE_NAME, null, selection, selectionArgs, null, null, null);
 
         cursor.moveToFirst();
-
-
-        //Cursor cursor = db.query(ModeSwitcherDbContract.dataEntry.TABLE_NAME, null, null, null, null, null, null);
-
-        //cursor.moveToFirst();
 
         int startHourIndex = cursor.getColumnIndex(ModeSwitcherDbContract.dataEntry.COLUMN_START_HOUR);
         int startMinuteIndex = cursor.getColumnIndex(ModeSwitcherDbContract.dataEntry.COLUMN_START_MINUTE);
@@ -103,7 +85,6 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
         int repeatSaturdayIndex = cursor.getColumnIndex(ModeSwitcherDbContract.dataEntry.COLUMN_REPEAT_SATURDAY);
         int repeatSundayIndex = cursor.getColumnIndex(ModeSwitcherDbContract.dataEntry.COLUMN_REPEAT_SUNDAY);
         int repeatTypeIndex = cursor.getColumnIndex(ModeSwitcherDbContract.dataEntry.COLUMN_WEEKLY_REPEAT_TYPE);
-
 
 
         startHour = cursor.getInt(startHourIndex);
@@ -124,14 +105,15 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
 
 
         cursor.close();
+        db.close();
         dbHelper.close();
     }
 
-    private void getAlarmsIds(Context context, int rowId){
+    private void getAlarmsIds(Context context, int rowId) {
         dbHelper = new ModeSwitcherDbHelper(context);
         db = dbHelper.getWritableDatabase();
 
-        String selection = "_ID" + "=?";
+        String selection = Constants.WHERE_CLAUSE_ROW_ID;
         String[] selectionArgs = new String[]{String.valueOf(rowId)};
 
         Cursor cursor = db.query(ModeSwitcherDbContract.dataEntry.TABLE_NAME, null, selection, selectionArgs, null, null, null);
@@ -145,6 +127,7 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
         alarmEndId = cursor.getInt(alarmEndIdIndex);
 
         cursor.close();
+        db.close();
         dbHelper.close();
 
     }
@@ -153,36 +136,34 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
 
         dbHelper = new ModeSwitcherDbHelper(context);
         db = dbHelper.getWritableDatabase();
-
         ContentValues cv = new ContentValues();
 
         cv.put(ModeSwitcherDbContract.dataEntry.COLUMN_ALARM_START_ID, alarmStartId);
         cv.put(ModeSwitcherDbContract.dataEntry.COLUMN_ALARM_END_ID, alarmEndId);
-        cv.put(ModeSwitcherDbContract.dataEntry.COLUMN_ALRMS_LEFT_QTY, alarmsQty);
-        String whereClause = "_ID=?";
+        cv.put(ModeSwitcherDbContract.dataEntry.COLUMN_ALARMS_LEFT_QTY, alarmsQty);
+        String whereClause = Constants.WHERE_CLAUSE_ROW_ID;
         String[] whereArgs = new String[]{String.valueOf(rowId)};
         db.update(ModeSwitcherDbContract.dataEntry.TABLE_NAME, cv, whereClause, whereArgs);
-
+        db.close();
         dbHelper.close();
 
     }
 
-    public void setBulkAlarms(Context context){
+    public void setBulkAlarms(Context context) {
         ArrayList<Integer> ids = getIds(context);
-        for(int rowId: ids){
+        for (int rowId : ids) {
             setAlarm(context, rowId);
         }
-
         enableBootReceiver(context);
     }
 
-    public void setSingleAlarm(Context context, int rowId){
+    public void setSingleAlarm(Context context, int rowId) {
         setAlarm(context, rowId);
         enableBootReceiver(context);
     }
 
 
-    private void enableBootReceiver(Context context){
+    private void enableBootReceiver(Context context) {
         ComponentName receiver = new ComponentName(context, BootReceiver.class);
         PackageManager pm = context.getPackageManager();
 
@@ -191,105 +172,29 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
                 PackageManager.DONT_KILL_APP);
     }
 
-
-
-    private void setAlarm(Context context, int rowId){
-
-        Log.d("test1" , "setAlarms called");
+    private void setAlarm(Context context, int rowId) {
 
         getDbData(context, rowId);
 
         getAlarmsIds(context, rowId);
 
-        if(alarmEndId != 0){
+        if (alarmEndId != 0) {
             cancelAlarms(context, rowId);
         }
 
         alarmStartId = rowId * 100;
         alarmEndId = alarmStartId;
 
-//        int id =0;
-//        String mode = "normal";
-//        String mode1 ="";
-//
-//        switch (alarmMode){
-//            case 0:
-//                mode1 = "normal";
-//                break;
-//            case 1:
-//                mode1 = "silent";
-//                break;
-//            case 2:
-//                mode1 = "vibrate";
-//                break;
-//        }
-//
-//
-//
-//        alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-//
-//        //for(int i = 1; i <= repeat.length; i++){
-//            Calendar calendar = Calendar.getInstance();
-//            //calendar.set(Calendar.DAY_OF_WEEK, i);
-//            calendar.set(Calendar.HOUR_OF_DAY, startHour);
-//            calendar.set(Calendar.MINUTE, startMinute);
-//
-//            Intent myIntent = new Intent(context, AlarmReceiver.class);
-//            myIntent.putExtra("mode", mode1);
-//
-//
-//            pendingIntent = PendingIntent.getBroadcast(context, id, myIntent, 0);
-//
-//            alarmManager.set(AlarmManager.RTC, calendar.getTimeInMillis(), pendingIntent);
-//
-//            id++;
-//
-//            //calendar.set(Calendar.DAY_OF_WEEK, i);
-//            calendar.set(Calendar.HOUR_OF_DAY, breakStartHour);
-//            calendar.set(Calendar.MINUTE, breakStartMinute);
-//
-//            myIntent = new Intent(context, AlarmReceiver.class);
-//            myIntent.putExtra("mode", mode);
-//
-//
-//            pendingIntent = PendingIntent.getBroadcast(context, id, myIntent, 0);
-//            alarmManager.set(AlarmManager.RTC, calendar.getTimeInMillis(), pendingIntent);
-//
-//            id++;
-//
-//            //calendar.set(Calendar.DAY_OF_WEEK, i);
-//            calendar.set(Calendar.HOUR_OF_DAY, breakStartHour + (breakLength / 60));
-//            calendar.set(Calendar.MINUTE, breakStartMinute + (breakLength % 60));
-//
-//            myIntent = new Intent(context, AlarmReceiver.class);
-//            myIntent.putExtra("mode", mode1);
-//
-//
-//            pendingIntent = PendingIntent.getBroadcast(context, id, myIntent, 0);
-//            alarmManager.set(AlarmManager.RTC, calendar.getTimeInMillis(), pendingIntent);
-//
-//            id++;
-//
-//            //calendar.set(Calendar.DAY_OF_WEEK, i);
-//            calendar.set(Calendar.HOUR_OF_DAY, endHour);
-//            calendar.set(Calendar.MINUTE, endMinute);
-//
-//            myIntent = new Intent(context, AlarmReceiver.class);
-//            myIntent.putExtra("mode", mode);
-//
-//
-//            pendingIntent = PendingIntent.getBroadcast(context, id, myIntent, 0);
-//            alarmManager.set(AlarmManager.RTC, calendar.getTimeInMillis(), pendingIntent);
-        for(int i = 0; i < repeat.length; i++){
-            if(repeat[i]){
+        for (int i = 0; i < repeat.length; i++) {
+            if (repeat[i]) {
                 // i+2 because monday in calendar class == 2
-                setDailyAlarms(context, i+2, repeatType, rowId);
+                setDailyAlarms(context, i + 2, repeatType, rowId);
             }
         }
 
         setAlarmsIds(context, rowId);
 
-        }
+    }
 
     private ArrayList<Integer> getIds(Context context) {
         ArrayList<Integer> ids = new ArrayList<>();
@@ -299,15 +204,14 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
 
 
         Cursor cursor = db.query(ModeSwitcherDbContract.dataEntry.TABLE_NAME, null, null, null, null, null, null);
+        // if db is not empty
         if (cursor.getCount() != 0) {
-
             if (cursor.moveToFirst()) {
                 int IDIndex = cursor.getColumnIndex(ModeSwitcherDbContract.dataEntry._ID);
                 int enabledID = cursor.getColumnIndex(ModeSwitcherDbContract.dataEntry.COLUMN_STATE);
 
                 do {
-                    int sw = cursor.getInt(enabledID);
-                    if (sw == 1) {
+                    if (cursor.getInt(enabledID) == 1) {
                         ids.add(cursor.getInt(IDIndex));
                     }
                 }
@@ -316,17 +220,18 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
         }
 
         cursor.close();
+        db.close();
         dbHelper.close();
         return ids;
     }
 
-   // }
-
-    private boolean[] intToBooleanArray(int[] array){
+    // converts int array from db to boolean
+    // 1 = true, 0 = false
+    private boolean[] intToBooleanArray(int[] array) {
         boolean[] boolArray = {false, false, false, false, false, false, false};
 
-        for (int i = 0; i < boolArray.length; i++){
-            if(array[i] == 1){
+        for (int i = 0; i < boolArray.length; i++) {
+            if (array[i] == 1) {
                 boolArray[i] = true;
             }
         }
@@ -334,58 +239,38 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
     }
 
 
-    private void setDailyAlarms(Context context, int dayNumber, int repeatType, int rowId){
-
-        //int id = alarmStartId;
+    private void setDailyAlarms(Context context, int dayNumber, int repeatType, int rowId) {
 
         SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(context);
 
-        boolean preDelay = sharedPref.getBoolean("pre_delay_enabled", false);
-        boolean postDelay = sharedPref.getBoolean("post_delay_enabled", false);
+        boolean preDelay = sharedPref.getBoolean(Constants.SETTINGS_PRE_DELAY, false);
+        boolean postDelay = sharedPref.getBoolean(Constants.SETTINGS_POST_DELAY, false);
 
 
         // 5m delay, if it's enabled in settings
-        long preDelayValue = preDelay ? 1000 * 60 * 5 : 0;
-        long postDelayValue = postDelay ? 1000 * 60 * 5 : 0;
+        long preDelayValue = preDelay ? Constants.DELAY_IN_MILLIS : 0;
+        long postDelayValue = postDelay ? Constants.DELAY_IN_MILLIS : 0;
 
+        String normalMode = Constants.SOUND_PROFILE_NORMAL;
+        String chosenMode = "";
 
-        String mode = "normal";
-        String mode1 = "";
-
-
-        switch (alarmMode){
-            case 0:
-                mode1 = "normal";
+        switch (alarmMode) {
+            case Constants.SOUND_PROFILE_NORMAL_ID:
+                chosenMode = Constants.SOUND_PROFILE_NORMAL;
                 break;
-            case 1:
-                mode1 = "silent";
+            case Constants.SOUND_PROFILE_SILENT_ID:
+                chosenMode = Constants.SOUND_PROFILE_SILENT;
                 break;
-            case 2:
-                mode1 = "vibrate";
+            case Constants.SOUND_PROFILE_VIBRATE_ID:
+                chosenMode = Constants.SOUND_PROFILE_VIBRATE;
                 break;
         }
 
-
-//        int breakStartDayNumber = (breakStartHour < startHour) ? dayNumber + 1 : dayNumber;
-//        int breakEndDayNumber = (breakStartHour + (breakLength / 60) < startHour) ? dayNumber + 1 : dayNumber;
-//        int endDayNumber = (endHour < startHour) ? dayNumber + 1 : dayNumber;
-
-
         // in case some of alarms time are set after 00:00
         // by increasing hour value instead of day we can avoid problems with weeks end
-        breakStartHour = (breakStartHour < startHour) ? breakStartHour + 24 : breakStartHour;
-        int breakEndHour = breakStartHour + (breakLength / 60);
-        endHour = (endHour < startHour) ? endHour + 24 : endHour;
-
-//        if (breakStartHour < startHour) {
-//            breakStartDayNumber = dayNumber + 1;
-//        }
-//        if (breakStartHour + (breakLength / 60) < startHour) {
-//            breakEndDayNumber = dayNumber + 1;
-//        }
-//        if (endHour < startHour) {
-//            endDayNumber = dayNumber + 1;
-//        }
+        breakStartHour = (breakStartHour < startHour) ? breakStartHour + Constants.DAY_LENGTH_IN_HOURS : breakStartHour;
+        int breakEndHour = breakStartHour + (breakLength / Constants.HOUR_LENGTH_IN_MINUTES);
+        endHour = (endHour < startHour) ? endHour + Constants.DAY_LENGTH_IN_HOURS : endHour;
 
         alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 
@@ -398,18 +283,15 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
         calendar.set(Calendar.MINUTE, startMinute);
 
         Intent myIntent = new Intent(context, AlarmReceiver.class);
-        myIntent.putExtra("mode", mode1);
-        myIntent.putExtra("_id", rowId);
-        myIntent.putExtra("repeatType", repeatType);
+        setIntentExtras(myIntent, repeatType, rowId, chosenMode);
 
         pendingIntent = PendingIntent.getBroadcast(context, alarmEndId, myIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        //alarmManager.set(AlarmManager.RTC, calendar.getTimeInMillis(), pendingIntent);
         set(alarmManager, AlarmManager.RTC, calendar.getTimeInMillis() - preDelayValue, pendingIntent, repeatType);
 
         alarmEndId++;
 
         // sets break start and end only if its length not equal to 0
-        if(breakLength > preDelayValue + postDelayValue) {
+        if (breakLength > preDelayValue + postDelayValue) {
 
             // start of the break
             calendar.set(Calendar.DAY_OF_WEEK, dayNumber);
@@ -417,15 +299,9 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
             calendar.set(Calendar.MINUTE, breakStartMinute);
 
             myIntent = new Intent(context, AlarmReceiver.class);
-            myIntent.putExtra("mode", mode);
-            myIntent.putExtra("_id", rowId);
-            myIntent.putExtra("repeatType", repeatType);
-
-
-
+            setIntentExtras(myIntent, repeatType, rowId, normalMode);
 
             pendingIntent = PendingIntent.getBroadcast(context, alarmEndId, myIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-            //alarmManager.set(AlarmManager.RTC, calendar.getTimeInMillis(), pendingIntent);
             set(alarmManager, AlarmManager.RTC, calendar.getTimeInMillis() + postDelayValue, pendingIntent, repeatType);
 
             alarmEndId++;
@@ -433,16 +309,13 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
             // end of the break
             calendar.set(Calendar.DAY_OF_WEEK, dayNumber);
             calendar.set(Calendar.HOUR_OF_DAY, breakEndHour);
-            calendar.set(Calendar.MINUTE, breakStartMinute + (breakLength % 60));
+            calendar.set(Calendar.MINUTE, breakStartMinute + (breakLength % Constants.HOUR_LENGTH_IN_MINUTES));
 
             myIntent = new Intent(context, AlarmReceiver.class);
-            myIntent.putExtra("mode", mode1);
-            myIntent.putExtra("_id", rowId);
-            myIntent.putExtra("repeatType", repeatType);
+            setIntentExtras(myIntent, repeatType, rowId, chosenMode);
 
 
             pendingIntent = PendingIntent.getBroadcast(context, alarmEndId, myIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-            //alarmManager.set(AlarmManager.RTC, calendar.getTimeInMillis(), pendingIntent);
             set(alarmManager, AlarmManager.RTC, calendar.getTimeInMillis() - preDelayValue, pendingIntent, repeatType);
 
             alarmEndId++;
@@ -454,49 +327,39 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
         calendar.set(Calendar.MINUTE, endMinute);
 
         myIntent = new Intent(context, AlarmReceiver.class);
-        myIntent.putExtra("mode", mode);
-        myIntent.putExtra("_id", rowId);
-        myIntent.putExtra("repeatType", repeatType);
+        setIntentExtras(myIntent, repeatType, rowId, normalMode);
 
 
         pendingIntent = PendingIntent.getBroadcast(context, alarmEndId, myIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        //alarmManager.set(AlarmManager.RTC, calendar.getTimeInMillis(), pendingIntent);
         set(alarmManager, AlarmManager.RTC, calendar.getTimeInMillis() + postDelayValue, pendingIntent, repeatType);
 
         alarmEndId++;
     }
 
+    // sets alarms to alarm manager
     private void set(AlarmManager alarmManager, int type, long triggerAt, PendingIntent pendingIntent, int repeatType) {
 
-        long weekLength = 1000 * 60 * 60 * 24 * 7;
+        long weekLength = Constants.WEEK_LENGTH_IN_MILLIS;
 
         switch (repeatType) {
-            case 0:
+            case Constants.REPEAT_TYPE_NO_REPEATS:
                 alarmManager.set(type, triggerAt, pendingIntent);
-                //currentLast = triggerAt;
                 alarmsQty++;
-
                 break;
-            case 1:
+            case Constants.REPEAT_TYPE_EVERY_WEEK:
                 alarmManager.setRepeating(type, triggerAt, weekLength, pendingIntent);
                 break;
-            case 2:
+            case Constants.REPEAT_TYPE_EVERY_TWO_WEEKS_FROM_THIS:
                 alarmManager.setRepeating(type, triggerAt, weekLength * 2, pendingIntent);
                 break;
-            case 3:
+            case Constants.REPEAT_TYPE_EVERY_TWO_WEEKS_FROM_NEXT:
                 alarmManager.setRepeating(type, triggerAt + weekLength, weekLength * 2, pendingIntent);
                 break;
         }
 
-        long val = triggerAt;
-
-        Date date=new Date(val);
-        SimpleDateFormat df2 = new SimpleDateFormat("hh:mm/dd/MM/yy");
-        String dateText = df2.format(date);
-        System.out.println("DATE TEST: " + dateText + " ID = " + alarmEndId);
-
     }
 
+    // cancels alarms for specified row id
     public void cancelAlarms(Context context, int rowId) {
         getAlarmsIds(context, rowId);
         Intent myIntent;
@@ -513,18 +376,25 @@ public class AlarmReceiver extends WakefulBroadcastReceiver {
         disableAlarm(context, rowId);
     }
 
-    private void disableAlarm(Context context, int rowId){
+    // changes status of alarm in database
+    private void disableAlarm(Context context, int rowId) {
         dbHelper = new ModeSwitcherDbHelper(context);
         db = dbHelper.getWritableDatabase();
-
         ContentValues cv = new ContentValues();
 
         cv.put(ModeSwitcherDbContract.dataEntry.COLUMN_STATE, 0);
 
-        String whereClause = "_ID=?";
+        String whereClause = Constants.WHERE_CLAUSE_ROW_ID;
         String[] whereArgs = new String[]{String.valueOf(rowId)};
         db.update(ModeSwitcherDbContract.dataEntry.TABLE_NAME, cv, whereClause, whereArgs);
-
+        db.close();
         dbHelper.close();
+    }
+
+    // puts provided values to intent extras
+    private void setIntentExtras(Intent intent, int repeatType, int rowId, String mode) {
+        intent.putExtra(Constants.INTENT_EXTRA_MODE, mode);
+        intent.putExtra(Constants.INTENT_EXTRA_ID, rowId);
+        intent.putExtra(Constants.INTENT_EXTRA_REPEAT_TYPE, repeatType);
     }
 }

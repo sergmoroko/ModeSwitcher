@@ -1,12 +1,8 @@
-package com.example.sergmoroko.modeswitcher;
+package com.example.sergmoroko.profileSwitcher;
 
 import android.os.Bundle;
-import android.preference.Preference;
 import android.preference.PreferenceFragment;
 
-/**
- * Created by ssss on 14.12.2016.
- */
 
 public class PrefsFragment extends PreferenceFragment {
 

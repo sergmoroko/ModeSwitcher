@@ -1,4 +1,4 @@
-package com.example.sergmoroko.modeswitcher;
+package com.example.sergmoroko.profileSwitcher;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -32,204 +32,176 @@ import android.widget.TextView;
 import android.widget.TimePicker;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
-import com.example.sergmoroko.modeswitcher.ModeSwitcherDbContract.dataEntry;
+import com.example.sergmoroko.profileSwitcher.ModeSwitcherDbContract.dataEntry;
 
-/**
- * Created by ssss on 04.11.2016.
- */
 public class DetailsActivity extends AppCompatActivity implements View.OnClickListener {
     private ArrayList<ListItem> data = new ArrayList<>();
-    private ArrayList<Integer> timeData = new ArrayList<>();
     private long id;
 
-    SQLiteDatabase db;
+    private SQLiteDatabase db;
 
     static int pickerHour = 0;
     static int pickerMinute = 0;
     static boolean timeSet;
 
 
-    static int currentPosition;
+    private static int currentPosition;
 
     private static Activity currentActivity;
 
-    MyListAdapter listAdapter;
+    private MyListAdapter listAdapter;
 
-    int startHour = 0;
-    int startMinute = 0;
-    int breakStartHour = 0;
-    int breakStartMinute = 0;
-    int endHour = 0;
-    int endMinute = 0;
-    int breakLength = 0;
-    int alarmMode = 0;
-    int repeatType = 0;
-    long repeatStart = 0;
+    private int startHour = 0;
+    private int startMinute = 0;
+    private int breakStartHour = 0;
+    private int breakStartMinute = 0;
+    private int endHour = 0;
+    private int endMinute = 0;
+    private int breakLength = 0;
+    private int alarmMode = 0;
+    private int repeatType = 0;
+    private long repeatStart = 0;
 
-    boolean[] repeat = {false, false, false, false, false, false, false};
+    private boolean[] repeat = {false, false, false, false, false, false, false};
 
-    String descriptionText;
+    private String descriptionText;
 
-    ModeSwitcherDbHelper dbHelper;
-
-    ArrayList titles;
+    private ModeSwitcherDbHelper dbHelper;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        System.out.println("ACTIVITY TEST CREATED");
-
         currentActivity = this;
 
-        titles = new ArrayList<>(Arrays.asList(getResources().getStringArray(R.array.detailsTitles)));
-
-        id = this.getIntent().getIntExtra("id", 0);
+        id = this.getIntent().getIntExtra(Constants.INTENT_EXTRA_ID, 0);
 
         setContentView(R.layout.activity_details);
-        ListView lv = (ListView) findViewById(R.id.listview_details);
+        ListView lv = (ListView) findViewById(R.id.listView_details);
         Button doneBtn = (Button) findViewById(R.id.details_button_done);
         Button deleteBtn = (Button) findViewById(R.id.details_button_delete);
         Button cancelBtn = (Button) findViewById(R.id.details_button_cancel);
-        doneBtn.setOnClickListener(this);
-        deleteBtn.setOnClickListener(this);
-        cancelBtn.setOnClickListener(this);
-
+        if (doneBtn != null) {
+            doneBtn.setOnClickListener(this);
+        }
+        if (deleteBtn != null) {
+            deleteBtn.setOnClickListener(this);
+        }
+        if (cancelBtn != null) {
+            cancelBtn.setOnClickListener(this);
+        }
+        // if data for current ID exists in db, get it
         if (!isNew()) {
-
             getDbData();
+            // otherwise hide delete button
         } else {
-            deleteBtn.setVisibility(View.GONE);
+            if (deleteBtn != null) {
+                deleteBtn.setVisibility(View.GONE);
+            }
         }
 
         if (data.isEmpty()) {
             generateListContent();
         }
         listAdapter = new MyListAdapter(this, android.R.layout.simple_list_item_2, data);
-        lv.setAdapter(listAdapter);
-        lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
-                currentPosition = position;
-                switch (position) {
-                    case 0:
-                        showTimePickerDialog(view);
-                        break;
-                    case 1:
-                        showTimePickerDialog(view);
-                        break;
-                    case 2:
-                        ShowSeekDialog();
-                        break;
-                    case 3:
-                        showTimePickerDialog(view);
-                        break;
-                    case 4:
-                        showRecurrencePickerDialog();
-                        break;
-                    case 5:
-                        ShowModeDialog();
-                        break;
-                    case 6:
-                        ShowNameDialog();
-                        break;
+        if (lv != null) {
+            lv.setAdapter(listAdapter);
+            lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
+                    currentPosition = position;
+                    switch (position) {
+                        case Constants.START_TIME_POSITION:
+                            showTimePickerDialog(view);
+                            break;
+                        case Constants.BREAK_TIME_POSITION:
+                            showTimePickerDialog(view);
+                            break;
+                        case Constants.BREAK_LENGTH_POSITION:
+                            ShowSeekDialog();
+                            break;
+                        case Constants.END_TIME_POSITION:
+                            showTimePickerDialog(view);
+                            break;
+                        case Constants.REPEAT_POSITION:
+                            showRecurrencePickerDialog();
+                            break;
+                        case Constants.SOUND_PROFILE_POSITION:
+                            ShowModeDialog();
+                            break;
+                        case Constants.DESCRIPTION_POSITION:
+                            ShowNameDialog();
+                            break;
+                    }
                 }
-            }
-        });
-
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            });
+        }
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
     }
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        System.out.println("ACTIVITY TEST SAVE INSTANCE STATE CALLED");
-        timeData.add(startHour);
-        timeData.add(startMinute);
-        timeData.add(endHour);
-        timeData.add(endMinute);
-        timeData.add(breakLength);
-        timeData.add(alarmMode);
-        timeData.add(breakStartHour);
-        timeData.add(breakStartMinute);
 
-        outState.putIntegerArrayList("time", timeData);
+        outState.putBooleanArray(Constants.REPEAT_ARRAY_SAVE, repeat);
 
-        outState.putBooleanArray("repeat", repeat);
+        outState.putInt(Constants.START_HOUR_SAVE, startHour);
+        outState.putInt(Constants.START_MINUTE_SAVE, startMinute);
+        outState.putInt(Constants.END_HOUR_SAVE, endHour);
+        outState.putInt(Constants.END_MINUTE_SAVE, endMinute);
+        outState.putInt(Constants.BREAK_LENGTH_SAVE, breakLength);
+        outState.putInt(Constants.ALARM_MODE_SAVE, alarmMode);
+        outState.putInt(Constants.BREAK_START_HOUR_SAVE, breakStartHour);
+        outState.putInt(Constants.BREAK_START_MINUTE_SAVE, breakStartMinute);
 
-        outState.putString("description", descriptionText);
-
-        outState.putInt("repeatType", repeatType);
-        outState.putLong("repeatStart", repeatStart);
-
+        outState.putString(Constants.DESCRIPTION_SAVE, descriptionText);
+        outState.putInt(Constants.REPEAT_TYPE_SAVE, repeatType);
+        outState.putLong(Constants.REPEAT_START_SAVE, repeatStart);
     }
 
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        System.out.println("ACTIVITY TEST RESTORE CALLED");
         super.onRestoreInstanceState(savedInstanceState);
 
+        startHour = savedInstanceState.getInt(Constants.START_HOUR_SAVE);
+        startMinute = savedInstanceState.getInt(Constants.START_MINUTE_SAVE);
+        endHour = savedInstanceState.getInt(Constants.END_HOUR_SAVE);
+        endMinute = savedInstanceState.getInt(Constants.END_MINUTE_SAVE);
+        breakLength = savedInstanceState.getInt(Constants.BREAK_LENGTH_SAVE);
+        alarmMode = savedInstanceState.getInt(Constants.ALARM_MODE_SAVE);
+        breakStartHour = savedInstanceState.getInt(Constants.BREAK_START_HOUR_SAVE);
+        breakStartMinute = savedInstanceState.getInt(Constants.BREAK_START_MINUTE_SAVE);
 
-        startHour = savedInstanceState.getIntegerArrayList("time").get(0);
-        startMinute = savedInstanceState.getIntegerArrayList("time").get(1);
-        endHour = savedInstanceState.getIntegerArrayList("time").get(2);
-        endMinute = savedInstanceState.getIntegerArrayList("time").get(3);
-        breakLength = savedInstanceState.getIntegerArrayList("time").get(4);
-        alarmMode = savedInstanceState.getIntegerArrayList("time").get(5);
-        breakStartHour = savedInstanceState.getIntegerArrayList("time").get(6);
-        breakStartMinute = savedInstanceState.getIntegerArrayList("time").get(7);
+        repeat = savedInstanceState.getBooleanArray(Constants.REPEAT_ARRAY_SAVE);
 
-        for (int i = 0; i < repeat.length; i++) {
-            repeat[i] = savedInstanceState.getBooleanArray("repeat")[i];
-        }
+        descriptionText = savedInstanceState.getString(Constants.DESCRIPTION_SAVE);
+        repeatType = savedInstanceState.getInt(Constants.REPEAT_TYPE_SAVE);
+        repeatStart = savedInstanceState.getLong(Constants.REPEAT_START_SAVE);
 
-        descriptionText = savedInstanceState.getString("description");
-
-        repeatType = savedInstanceState.getInt("repeatType");
-        repeatStart = savedInstanceState.getLong("repeatStart");
-
-
-        data.clear();
-        data.add(new ListItem("Start Time", timeToString(startHour, startMinute)));
-        data.add(new ListItem("Break Time", timeToString(breakStartHour, breakStartMinute)));
-        data.add(new ListItem("Break Length", breakLengthTextToString(breakLength)));
-        data.add(new ListItem("End Time", timeToString(endHour, endMinute)));
-        data.add(new ListItem("Repeat", repeatTextToString(repeat)));
-        data.add(new ListItem("Sound Profile", soundProfileToString(alarmMode)));
-        data.add(new ListItem("Description (optional)", (descriptionText)));
+        generateListContent();
 
         listAdapter.notifyDataSetChanged();
-
     }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        System.out.println("ACTIVITY TEST DESTROYED");
-    }
-
 
     private void generateListContent() {
-
         if (!data.isEmpty()) {
             data.clear();
         }
 
-        data.add(new ListItem("Start Time", timeToString(startHour, startMinute)));
-        data.add(new ListItem("Break Time", timeToString(breakStartHour, breakStartMinute)));
-        data.add(new ListItem("Break Length", breakLengthTextToString(breakLength)));
-        data.add(new ListItem("End Time", timeToString(endHour, endMinute)));
-        data.add(new ListItem("Repeat", repeatTextToString(repeat)));
-        data.add(new ListItem("Sound Profile", soundProfileToString(alarmMode)));
-        data.add(new ListItem("Description (optional)", (descriptionText)));
-
+        data.add(new ListItem(getResources().getString(R.string.start_time_title), timeToString(startHour, startMinute)));
+        data.add(new ListItem(getResources().getString(R.string.break_time_title), timeToString(breakStartHour, breakStartMinute)));
+        data.add(new ListItem(getResources().getString(R.string.break_length_title), breakLengthTextToString(breakLength)));
+        data.add(new ListItem(getResources().getString(R.string.end_time_title), timeToString(endHour, endMinute)));
+        data.add(new ListItem(getResources().getString(R.string.repeat_title), repeatTextToString(repeat)));
+        data.add(new ListItem(getResources().getString(R.string.sound_profile_title), soundProfileToString(alarmMode)));
+        data.add(new ListItem(getResources().getString(R.string.description_title), (descriptionText)));
     }
 
     @Override
@@ -249,13 +221,9 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             case R.id.details_button_done:
                 putDbData();
                 doneBack();
-                //goBack();
                 break;
             case R.id.details_button_delete:
-                //deleteDbEntry();
-                //deleteBack();
                 showDeleteConfirmationDialog();
-                //goBack();
                 break;
             case R.id.details_button_cancel:
                 goBack();
@@ -273,8 +241,9 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             layout = resource;
         }
 
+        @NonNull
         @Override
-        public View getView(final int position, View convertView, ViewGroup parent) {
+        public View getView(final int position, View convertView, @NonNull ViewGroup parent) {
             ViewHolder mainViewHolder;
 
             if (convertView == null) {
@@ -299,36 +268,48 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         }
     }
 
-
-    public class ViewHolder {
-        TextView title;
-        TextView value;
-    }
-
+    /**
+     * TIME PICKING DIALOG
+     */
 
     public static class TimePickerFragment extends DialogFragment
             implements TimePickerDialog.OnTimeSetListener {
 
+        @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             // Use the current time as the default values for the picker
             final Calendar c = Calendar.getInstance();
             int hour = 0;
             int minute = 0;
+            // dialog title
+            String dialogTitle = "";
+            switch (currentPosition) {
+                case Constants.START_TIME_POSITION:
+                    dialogTitle = getResources().getString(R.string.start_time_dialog_title);
+                    break;
+                case Constants.BREAK_TIME_POSITION:
+                    dialogTitle = getResources().getString(R.string.break_time_dialog_title);
+                    break;
+                case Constants.END_TIME_POSITION:
+                    dialogTitle = getResources().getString(R.string.end_time_dialog_title);
+                    break;
+            }
+
             if (getInstance().isNew()) {
                 hour = c.get(Calendar.HOUR_OF_DAY);
                 minute = c.get(Calendar.MINUTE);
             } else {
                 switch (currentPosition) {
-                    case 0:
+                    case Constants.START_TIME_POSITION:
                         hour = getInstance().startHour;
                         minute = getInstance().startMinute;
                         break;
-                    case 1:
+                    case Constants.BREAK_TIME_POSITION:
                         hour = getInstance().breakStartHour;
                         minute = getInstance().breakStartMinute;
                         break;
-                    case 3:
+                    case Constants.END_TIME_POSITION:
                         hour = getInstance().endHour;
                         minute = getInstance().endMinute;
                         break;
@@ -337,8 +318,10 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
 
 
             // Create a new instance of TimePickerDialog and return it
-            return new TimePickerDialog(getActivity(), this, hour, minute,
+            TimePickerDialog dialog = new TimePickerDialog(getActivity(), this, hour, minute,
                     DateFormat.is24HourFormat(getActivity()));
+            dialog.setTitle(dialogTitle);
+            return dialog;
         }
 
         public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
@@ -346,8 +329,6 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             pickerHour = hourOfDay;
             pickerMinute = minute;
         }
-
-
 
 
         @Override
@@ -359,7 +340,6 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
                 timeSet = false;
             }
         }
-
 
     }
 
@@ -380,30 +360,31 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
 
     public static class BreakLengthDialog extends DialogFragment {
 
+        @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             final AlertDialog.Builder popDialog = new AlertDialog.Builder(getActivity());
             final SeekBar seek = new SeekBar(getActivity());
             seek.setId(R.id.seek_bar);
-            seek.setMax(10);
-            seek.setProgress(((DetailsActivity) getActivity()).breakLength / 10);
+            seek.setMax(Constants.BREAK_LENGTH_SEEK_BAR_MULTIPLIER);
+            seek.setProgress(((DetailsActivity) getActivity()).breakLength / Constants.BREAK_LENGTH_SEEK_BAR_MULTIPLIER);
 
-            popDialog.setTitle("Set break length");
+            popDialog.setTitle(R.string.break_length_dialog_title);
 
             popDialog.setView(seek);
             popDialog.setMessage(((DetailsActivity) getActivity()).breakLengthTextToString(((DetailsActivity) getActivity()).breakLength));
 
             // OK button
-            popDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            popDialog.setPositiveButton(R.string.break_length_dialog_ok, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
 
-                    ((DetailsActivity) getActivity()).setBreakLengthText(seek.getProgress() * 10);
+                    ((DetailsActivity) getActivity()).setBreakLengthText(seek.getProgress() * Constants.BREAK_LENGTH_SEEK_BAR_MULTIPLIER);
                     dialog.dismiss();
                 }
 
             });
             // CANCEL button
-            popDialog.setNeutralButton("CANCEL", new DialogInterface.OnClickListener() {
+            popDialog.setNeutralButton(R.string.break_length_dialog_cancel, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.dismiss();
                 }
@@ -416,8 +397,8 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
                 int progress = 0;
 
                 public void onProgressChanged(SeekBar seekBar, int progressV, boolean fromUser) {
-                    progress = progressV * 10;
-                    dialog.setMessage(((DetailsActivity) getActivity()).breakLengthTextToString(seek.getProgress() * 10));
+                    progress = progressV * Constants.BREAK_LENGTH_SEEK_BAR_MULTIPLIER;
+                    dialog.setMessage(((DetailsActivity) getActivity()).breakLengthTextToString(seek.getProgress() * Constants.BREAK_LENGTH_SEEK_BAR_MULTIPLIER));
                 }
 
                 public void onStartTrackingTouch(SeekBar arg0) {
@@ -425,10 +406,9 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
                 }
 
                 public void onStopTrackingTouch(SeekBar seekBar) {
-                    dialog.setMessage(((DetailsActivity) getActivity()).setBreakLengthText(progress));
+                    dialog.setMessage(((DetailsActivity) getActivity()).breakLengthTextToString(progress));
                 }
             });
-
 
             return dialog;
         }
@@ -436,9 +416,9 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
 
     /**
      * DELETE CONFIRMATION DIALOG
-     * */
+     */
 
-    public static class DeleteConfirmationDialog extends DialogFragment{
+    public static class DeleteConfirmationDialog extends DialogFragment {
         AlertDialog.Builder confirmationDialog;
         TextView text;
 
@@ -447,15 +427,15 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             confirmationDialog = new AlertDialog.Builder(getActivity());
             text = new TextView(getActivity());
-            confirmationDialog.setTitle("Delete entry");
-            confirmationDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            confirmationDialog.setTitle(R.string.delete_confirmation_dialog_title);
+            confirmationDialog.setPositiveButton(R.string.delete_confirmation_dialog_ok, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     //delete row
                     getInstance().deleteBack();
                 }
             });
-            confirmationDialog.setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+            confirmationDialog.setNegativeButton(R.string.delete_confirmation_dialog_cancel, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     // cancel
@@ -467,7 +447,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         }
     }
 
-    private void showDeleteConfirmationDialog(){
+    private void showDeleteConfirmationDialog() {
 
         DeleteConfirmationDialog dialog = new DeleteConfirmationDialog();
         dialog.show(getSupportFragmentManager(), "deleteConfirmationDialog");
@@ -480,7 +460,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
     }
 
     /**
-     * MODE NAME INPUT DIALOG
+     * DESCRIPTION INPUT DIALOG
      **/
     public static class NameDialog extends DialogFragment {
         AlertDialog.Builder popDialog;
@@ -493,7 +473,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             input = new EditText(getActivity());
             input.setId(R.id.edittext);
 
-            popDialog.setTitle("Set description");
+            popDialog.setTitle(R.string.description_dialog_title);
             if (((DetailsActivity) getActivity()).descriptionText != null) {
                 input.setText(((DetailsActivity) getActivity()).descriptionText);
             }
@@ -501,7 +481,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             popDialog.setView(input);
 
             // OK button
-            popDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            popDialog.setPositiveButton(R.string.description_dialog_ok, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                     ((DetailsActivity) getActivity()).setDescriptionText(input.getText().toString());
                     dialog.dismiss();
@@ -510,7 +490,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             });
 
             // CANCEL button
-            popDialog.setNeutralButton("CANCEL", new DialogInterface.OnClickListener() {
+            popDialog.setNeutralButton(R.string.description_dialog_cancel, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.dismiss();
                 }
@@ -521,18 +501,16 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         }
     }
 
-    // show mode choose dialog
+    // show sound profile choose dialog
     public void ShowModeDialog() {
-
-        ModeDialog modeDialog = new ModeDialog();
+        RingerModeDialog modeDialog = new RingerModeDialog();
         modeDialog.show(getSupportFragmentManager(), "modeDialog");
     }
 
     /**
-     * MODE CHOOSE DIALOG
+     * SOUND PROFILE CHOOSE DIALOG
      **/
-    public static class ModeDialog extends DialogFragment {
-
+    public static class RingerModeDialog extends DialogFragment {
 
         @NonNull
         @Override
@@ -541,7 +519,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             final Spinner spinner = new Spinner(getActivity());
             spinner.setId(R.id.spinner);
 
-            popDialog.setTitle("Choose mode");
+            popDialog.setTitle(R.string.ringer_mode_dialog_title);
 
             ArrayAdapter<?> adapter =
                     ArrayAdapter.createFromResource(getActivity(), R.array.modes, android.R.layout.simple_spinner_item);
@@ -552,9 +530,8 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
 
             popDialog.setView(spinner);
 
-
             // OK button
-            popDialog.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            popDialog.setPositiveButton(R.string.ringer_mode_dialog_ok, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                     ((DetailsActivity) getActivity()).setSoundProfileText(spinner.getSelectedItemPosition());
                     dialog.dismiss();
@@ -563,7 +540,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             });
 
             // CANCEL button
-            popDialog.setNeutralButton("CANCEL", new DialogInterface.OnClickListener() {
+            popDialog.setNeutralButton(R.string.ringer_mode_dialog_cancel, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.dismiss();
                 }
@@ -571,12 +548,10 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             });
 
             return popDialog.create();
-
         }
-
-
     }
 
+    // show repeat dialog
     public void showRecurrencePickerDialog() {
         RecurrencePickerDialog recurrencePickerDialog = new RecurrencePickerDialog();
         recurrencePickerDialog.show(getSupportFragmentManager(), "rec");
@@ -586,8 +561,8 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
      * RECURRENCE PICKER DIALOG
      **/
     public static class RecurrencePickerDialog extends DialogFragment {
-        ArrayList mSelectedItems;
-        ArrayList workdays = new ArrayList();
+        ArrayList<Integer> mSelectedItems;
+        ArrayList<Integer> workdays = new ArrayList<>();
         RadioGroup radioGroup1;
         RadioButton rbWorkDay;
         RadioButton rbEveryDay;
@@ -602,89 +577,49 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             repeat = ((DetailsActivity) getActivity()).repeat.clone();
 
             if (savedInstanceState != null) {
-                repeat = savedInstanceState.getBooleanArray("repeat_temp");
+                repeat = savedInstanceState.getBooleanArray(Constants.REPEAT_TEMPORARY_ARRAY);
             }
 
             LayoutInflater inflater = (LayoutInflater) getActivity().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             View v = inflater.inflate(R.layout.recurrence_picker, null);
 
-            radioGroup1 = (RadioGroup) v.findViewById(R.id.recurrence_picker_radiogroup);
+            // radioButtons
+            radioGroup1 = (RadioGroup) v.findViewById(R.id.recurrence_picker_radio_group);
             rbWorkDay = (RadioButton) v.findViewById(R.id.rb_wd);
             rbEveryDay = (RadioButton) v.findViewById(R.id.rb_ed);
             rbNotSelected = (RadioButton) v.findViewById(R.id.rb_ns);
 
 
-            //Calendar calendar = Calendar.getInstance();
-//            int week = calendar.get(Calendar.WEEK_OF_YEAR);
-//            //week = calendar.get(Calendar.WEEK_OF_MONTH);
-//            int date = calendar.get(Calendar.DATE);
-//
-//            System.out.println("WEEK NUMBER" + date);
-//
-//            String[] weeklyRepeatItems = getResources().getStringArray(R.array.repeat).clone();
-//            String nowIs;
-//
-//            if (week % 2 == 0) {
-//                nowIs = "(this week is even)";
-//                weeklyRepeatItems[3] = weeklyRepeatItems[3] + " " + nowIs;
-//            } else {
-//                nowIs = "(this week is odd)";
-//                weeklyRepeatItems[2] = weeklyRepeatItems[2] + " " + nowIs;
-//            }
-
-
             int repeatPos = ((DetailsActivity) getActivity()).repeatType;
             long thisMonday = getThisMonday();
 
-            //calendar.set(Calendar.)
-            long presavedTime = ((DetailsActivity) getActivity()).repeatStart;
+            long preSavedTime = ((DetailsActivity) getActivity()).repeatStart;
 
-            System.out.println("TEST123 " + thisMonday + " - now" );
-            System.out.println("TEST123 " + presavedTime + " - start time" );
-
-            int weeksElapsed = (int) ((thisMonday - presavedTime) / (1000*60*60*24*7));
-
-            //int spinnerPos;
-
-//            if (weeksElapsed % 2 == 0) {
-//                spinnerPos = 4;
-//
-//            } else {
-//                spinnerPos = 3;
-//            }
-
+            int weeksElapsed = (int) ((thisMonday - preSavedTime) / Constants.WEEK_LENGTH_IN_MILLIS);
 
 
             final Spinner repeatSpinner = (Spinner) v.findViewById(R.id.repeat_spinner);
-            ArrayAdapter<?> spinnerAdapter = ArrayAdapter.createFromResource(getActivity(), R.array.repeat, android.R.layout.simple_spinner_item);
-            //ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_spinner_item, weeklyRepeatItems);
+            ArrayAdapter<?> spinnerAdapter = ArrayAdapter.createFromResource(getActivity(), R.array.repeat,
+                    android.R.layout.simple_spinner_item);
             spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
             repeatSpinner.setAdapter(spinnerAdapter);
-            //repeatSpinner.setSelection();
 
             // if saved
-            if(repeatPos == 2 || repeatPos == 3){
-                if (weeksElapsed % 2 == 0) {
-                    repeatPos = 2;
-                    System.out.println("TEST123 " + weeksElapsed + " repeatPos = " + repeatPos);
+            if (repeatPos == Constants.REPEAT_TYPE_EVERY_TWO_WEEKS_FROM_THIS ||
+                    repeatPos == Constants.REPEAT_TYPE_EVERY_TWO_WEEKS_FROM_NEXT) {
 
-                } else {
-                    repeatPos = 3;
-                    System.out.println("TEST123 " + weeksElapsed + " repeatPos = " + repeatPos);
-                }
+                repeatPos = (weeksElapsed % 2 == 0) ? Constants.REPEAT_TYPE_EVERY_TWO_WEEKS_FROM_THIS :
+                        Constants.REPEAT_TYPE_EVERY_TWO_WEEKS_FROM_THIS;
             }
             repeatSpinner.setSelection(repeatPos);
 
-
-
-
             // Set the dialog title
-            builder.setTitle("Repeat")
+            builder.setTitle(R.string.recurrence_dialog_title)
                     .setView(v)
                     .setMultiChoiceItems(R.array.days, repeat, null)
 
                     // Set the action buttons
-                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                    .setPositiveButton(R.string.recurrence_dialog_ok, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int id) {
 
@@ -692,22 +627,17 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
                             ((DetailsActivity) getActivity()).data.get(currentPosition)
                                     .setValue(((DetailsActivity) getActivity()).repeatTextToString(((DetailsActivity) getActivity()).repeat));
 
-                            //setRepeatStartTime();
                             int spinnerPos = repeatSpinner.getSelectedItemPosition();
 
-                            System.out.println();
-
-
-                            switch (spinnerPos){
-                                case 2:
+                            // saving a beginning of the week time
+                            switch (spinnerPos) {
+                                case Constants.REPEAT_TYPE_EVERY_TWO_WEEKS_FROM_THIS:
                                     // save time of current week beginning
-                                    // spinnerPos = 3
                                     setRepeatStartTime(true);
 
                                     break;
-                                case 3:
+                                case Constants.REPEAT_TYPE_EVERY_TWO_WEEKS_FROM_NEXT:
                                     // save time of next week beginning
-                                    // spinnerPos = 4
                                     setRepeatStartTime(false);
                                     break;
 
@@ -719,7 +649,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
                         }
                     })
 
-                    .setNegativeButton("CANCEL", new DialogInterface.OnClickListener() {
+                    .setNegativeButton(R.string.recurrence_dialog_cancel, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int id) {
                             dialog.dismiss();
@@ -730,18 +660,16 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             AlertDialog dialog = builder.create();
 
             listView = dialog.getListView();
-            //listView.setId(R.id.list_view);
-
 
             rbWorkDay.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    for (int i = 0; i < 5; i++) {
+                    for (int i = 0; i < Constants.WORKING_DAYS_IN_WEEK_QTY; i++) {
                         if (!listView.isItemChecked(i)) {
                             listView.performItemClick(listView, i, 0);
                         }
                     }
-                    for (int y = 5; y < 7; y++) {
+                    for (int y = Constants.WORKING_DAYS_IN_WEEK_QTY; y < Constants.DAYS_IN_WEEK_QTY; y++) {
                         if (listView.isItemChecked(y)) {
                             listView.performItemClick(listView, y, 0);
                         }
@@ -753,7 +681,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             rbEveryDay.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    for (int i = 0; i < 7; i++) {
+                    for (int i = 0; i < Constants.DAYS_IN_WEEK_QTY; i++) {
                         if (!listView.isItemChecked(i)) {
                             listView.performItemClick(listView, i, 0);
                         }
@@ -765,7 +693,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             rbNotSelected.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    for (int i = 0; i < 7; i++) {
+                    for (int i = 0; i < Constants.DAYS_IN_WEEK_QTY; i++) {
                         if (listView.isItemChecked(i)) {
                             listView.performItemClick(listView, i, 0);
                         }
@@ -817,28 +745,27 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
 
         @Override
         public void onSaveInstanceState(Bundle outState) {
-            outState.putBooleanArray("repeat_temp", repeat);
+            outState.putBooleanArray(Constants.REPEAT_TEMPORARY_ARRAY, repeat);
             super.onSaveInstanceState(outState);
         }
 
+        // writes checked days to array
         private void listCheck(ListView listView) {
             for (int i = 0; i < listView.getCount(); i++) {
                 ((DetailsActivity) getActivity()).repeat[i] = listView.isItemChecked(i);
             }
         }
 
-        private void setRepeatStartTime(boolean thisWeek){
-
-            if(thisWeek) {
+        private void setRepeatStartTime(boolean thisWeek) {
+            if (thisWeek) {
                 ((DetailsActivity) getActivity()).repeatStart = getThisMonday();
+            } else {
+                ((DetailsActivity) getActivity()).repeatStart = getThisMonday() + Constants.WEEK_LENGTH_IN_MILLIS;
             }
-            else{
-                ((DetailsActivity) getActivity()).repeatStart = getThisMonday() + (1000*60*60*24*7);
-            }
-            //System.out.println( "TEST123 " + calendar.getTimeInMillis());
         }
 
-        private long getThisMonday(){
+        // method returns long containing a moment of current week beginning
+        private long getThisMonday() {
             Calendar calendar = Calendar.getInstance();
             calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
             calendar.set(Calendar.HOUR_OF_DAY, 0);
@@ -848,18 +775,19 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
             return calendar.getTimeInMillis();
         }
 
+        // check radioButtons accordingly to current checkBoxes state
         private void checkRadioButtons() {
             boolean noneOfThis = true;
             if (mSelectedItems.isEmpty()) {
                 rbNotSelected.setChecked(true);
                 noneOfThis = false;
             }
-            if (mSelectedItems.size() == 7) {
+            if (mSelectedItems.size() == Constants.DAYS_IN_WEEK_QTY) {
                 rbEveryDay.setChecked(true);
                 noneOfThis = false;
             }
             if (mSelectedItems.containsAll(workdays)
-                    && mSelectedItems.size() == 5) {
+                    && mSelectedItems.size() == Constants.WORKING_DAYS_IN_WEEK_QTY) {
                 rbWorkDay.setChecked(true);
                 noneOfThis = false;
             }
@@ -869,77 +797,48 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         }
     }
 
+    private void setTimeText(int hour, int minute) {
 
-    public String setTimeText(int hour, int minute) {
-        String h;
-        String m;
-        String time;
-        if (hour < 10) {
-            h = "0" + hour;
-        } else {
-            h = Integer.toString(hour);
-        }
-        if (minute < 10) {
-            m = "0" + minute;
-        } else {
-            m = Integer.toString(minute);
-        }
-
-        time = h + ":" + m;
+        String time = timeToString(hour, minute);
 
         data.get(currentPosition).setValue(time);
         switch (currentPosition) {
-            case 0:
+            case Constants.START_TIME_POSITION:
                 startHour = hour;
                 startMinute = minute;
                 break;
-            case 1:
+            case Constants.BREAK_TIME_POSITION:
                 breakStartHour = hour;
                 breakStartMinute = minute;
                 break;
-            case 3:
+            case Constants.END_TIME_POSITION:
                 endHour = hour;
                 endMinute = minute;
                 break;
         }
         listAdapter.notifyDataSetChanged();
-
-        return time;
     }
 
-    public String setBreakLengthText(int length) {
-        String l;
-        if (length < 60) {
-            l = length + "m";
-        } else {
-            l = length / 60 + "h" + " " + length % 60 + "m";
-        }
-
-        data.get(currentPosition).setValue(l);
+    private void setBreakLengthText(int length) {
+        String breakText = breakLengthTextToString(length);
+        data.get(currentPosition).setValue(breakText);
         breakLength = length;
         listAdapter.notifyDataSetChanged();
-        return l;
     }
 
 
-    public String setSoundProfileText(int i) {
-
+    private void setSoundProfileText(int i) {
         String[] profiles = getResources().getStringArray(R.array.modes);
         String profile = profiles[i];
         data.get(currentPosition).setValue(profile);
         alarmMode = i;
         listAdapter.notifyDataSetChanged();
-
-
-        return profile;
     }
 
-    public String setDescriptionText(String description) {
+    private void setDescriptionText(String description) {
         data.get(currentPosition).setValue(description);
         descriptionText = description;
         listAdapter.notifyDataSetChanged();
-
-        return description;
     }
 
     public static DetailsActivity getInstance() {
@@ -947,23 +846,10 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
     }
 
     private String timeToString(int hour, int minute) {
-        String h;
-        String m;
-        String time;
-        if (hour < 10) {
-            h = "0" + hour;
-        } else {
-            h = Integer.toString(hour);
-        }
-        if (minute < 10) {
-            m = "0" + minute;
-        } else {
-            m = Integer.toString(minute);
-        }
-
-        time = h + ":" + m;
-
-        return time;
+        // adding "0" to hours and minutes if their values are less than 10
+        String h = (hour < 10) ? "0" + hour : Integer.toString(hour);
+        String m = (minute < 10) ? "0" + minute : Integer.toString(minute);
+        return h + getResources().getString(R.string.time_delimiter) + m;
     }
 
     private String soundProfileToString(int i) {
@@ -973,55 +859,49 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
 
     private String repeatTextToString(boolean[] days) {
 
-        String d = "";
+        String resultString = "";
 
         for (int i = 0; i < days.length; i++) {
-            if (days[i]) {
-
-                String day = getResources().getStringArray(R.array.days)[i];
-
-                if (i < days.length - 1) {
-                    d = d + day.substring(0, 3) + ", ";
-                } else {
-                    d = d + day.substring(0, 3);
-                }
-            }
+            String day = getResources().getStringArray(R.array.days_short)[i];
+            resultString = (days[i]) ? resultString + day + ", " : resultString;
+        }
+        // if resulting string is not empty
+        if (resultString.length() != 0) {
+            // remove the last comma and whitespace
+            resultString = resultString.substring(0, resultString.length() - 2);
         }
 
-        if (d.lastIndexOf(',') == d.length() - 2 && d.length() != 0) {
-
-            d = d.substring(0, d.length() - 2);
-        }
-
-        return d;
+        return resultString;
     }
+
 
     private String breakLengthTextToString(int length) {
         String l = "";
-        if (length < 60) {
-            l = length + "m";
+        if (length < Constants.HOUR_LENGTH_IN_MINUTES) {
+            l = length + getResources().getString(R.string.minute);
         }
-        if (length == 60) {
-            l = "1h";
+        if (length == Constants.HOUR_LENGTH_IN_MINUTES) {
+            l = getResources().getString(R.string.one_hour);
         }
-        if (length > 60) {
-            l = length / 60 + "h" + " " + length % 60 + "m";
+        if (length > Constants.HOUR_LENGTH_IN_MINUTES) {
+            l = length / Constants.HOUR_LENGTH_IN_MINUTES + getResources().getString(R.string.hour) +
+                    getResources().getString(R.string.break_length_delimiter) +
+                    length % Constants.HOUR_LENGTH_IN_MINUTES + getResources().getString(R.string.minute);
         }
         return l;
+
     }
 
     private String timeSummaryString() {
-        return timeToString(startHour, startMinute) + " - " + timeToString(endHour, endMinute);
+        return timeToString(startHour, startMinute) +
+                getResources().getString(R.string.summary_time_delimiter) + timeToString(endHour, endMinute);
     }
-
 
     private boolean[] intToBooleanArray(int[] array) {
         boolean[] boolArray = {false, false, false, false, false, false, false};
 
         for (int i = 0; i < boolArray.length; i++) {
-            if (array[i] == 1) {
-                boolArray[i] = true;
-            }
+            boolArray[i] = (array[i] == 1);
         }
         return boolArray;
     }
@@ -1038,7 +918,7 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         dbHelper = new ModeSwitcherDbHelper(this);
         db = dbHelper.getWritableDatabase();
 
-        String selection = "_ID" + "=?";
+        String selection = Constants.WHERE_CLAUSE_ROW_ID;
         String[] selectionArgs = new String[]{String.valueOf(id)};
 
         Cursor cursor = db.query(dataEntry.TABLE_NAME, null, selection, selectionArgs, null, null, null);
@@ -1064,8 +944,6 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         int repeatTypeIndex = cursor.getColumnIndex(dataEntry.COLUMN_WEEKLY_REPEAT_TYPE);
         int repeatTimeIndex = cursor.getColumnIndex(dataEntry.COLUMN_WEEKLY_REPEAT_BEGINNING);
 
-
-
         startHour = cursor.getInt(startHourIndex);
         startMinute = cursor.getInt(startMinuteIndex);
         breakStartHour = cursor.getInt(breakStartHourIndex);
@@ -1085,8 +963,8 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
                 cursor.getInt(repeatSundayIndex)};
         repeat = intToBooleanArray(repeatArray);
 
-
         cursor.close();
+        db.close();
         dbHelper.close();
     }
 
@@ -1105,13 +983,13 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
         cv.put(dataEntry.COLUMN_END_MINUTE, endMinute);
         cv.put(dataEntry.COLUMN_ALARM_MODE, alarmMode);
 
-        cv.put(dataEntry.COLUMN_REPEAT_MONDAY, booleanToInt(repeat[0]));
-        cv.put(dataEntry.COLUMN_REPEAT_TUESDAY, booleanToInt(repeat[1]));
-        cv.put(dataEntry.COLUMN_REPEAT_WEDNESDAY, booleanToInt(repeat[2]));
-        cv.put(dataEntry.COLUMN_REPEAT_THURSDAY, booleanToInt(repeat[3]));
-        cv.put(dataEntry.COLUMN_REPEAT_FRIDAY, booleanToInt(repeat[4]));
-        cv.put(dataEntry.COLUMN_REPEAT_SATURDAY, booleanToInt(repeat[5]));
-        cv.put(dataEntry.COLUMN_REPEAT_SUNDAY, booleanToInt(repeat[6]));
+        cv.put(dataEntry.COLUMN_REPEAT_MONDAY, booleanToInt(repeat[Constants.MONDAY]));
+        cv.put(dataEntry.COLUMN_REPEAT_TUESDAY, booleanToInt(repeat[Constants.TUESDAY]));
+        cv.put(dataEntry.COLUMN_REPEAT_WEDNESDAY, booleanToInt(repeat[Constants.WEDNESDAY]));
+        cv.put(dataEntry.COLUMN_REPEAT_THURSDAY, booleanToInt(repeat[Constants.THURSDAY]));
+        cv.put(dataEntry.COLUMN_REPEAT_FRIDAY, booleanToInt(repeat[Constants.FRIDAY]));
+        cv.put(dataEntry.COLUMN_REPEAT_SATURDAY, booleanToInt(repeat[Constants.SATURDAY]));
+        cv.put(dataEntry.COLUMN_REPEAT_SUNDAY, booleanToInt(repeat[Constants.SUNDAY]));
 
         cv.put(dataEntry.COLUMN_DESCRIPTION, descriptionText);
         cv.put(dataEntry.COLUMN_SUMMARY, timeSummaryString());
@@ -1119,33 +997,22 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
 
         cv.put(dataEntry.COLUMN_WEEKLY_REPEAT_TYPE, repeatType);
         cv.put(dataEntry.COLUMN_WEEKLY_REPEAT_BEGINNING, repeatStart);
-//        cv.put(dataEntry.COLUMN_ALARM_START_ID, 0);
-//        cv.put(dataEntry.COLUMN_ALARM_END_ID, 0);
 
+        // COLUMN_STATE = 1 means that alarms for that entry are active
         cv.put(dataEntry.COLUMN_STATE, 1);
 
-        //cv.put(dataEntry.COLUMN_STATE, 1);
-
+        // insert new row if it's a new entry
         if (isNew()) {
             id = db.insertOrThrow(dataEntry.TABLE_NAME, null, cv);
+            // or update currently existing
         } else {
-            String whereClause = "_ID=?";
+            String whereClause = Constants.WHERE_CLAUSE_ROW_ID;
             String[] whereArgs = new String[]{String.valueOf(id)};
             db.update(dataEntry.TABLE_NAME, cv, whereClause, whereArgs);
         }
-
+        db.close();
         dbHelper.close();
     }
-
-//    private void deleteDbEntry() {
-//        dbHelper = new ModeSwitcherDbHelper(this);
-//        db = dbHelper.getWritableDatabase();
-//        String whereClause = "_ID=?";
-//        String[] whereArgs = new String[]{String.valueOf(id)};
-//        db.delete(dataEntry.TABLE_NAME, whereClause, whereArgs);
-//        dbHelper.close();
-//    }
-
 
     // return true if entry id == -1 to check if it is a new entry
     private boolean isNew() {
@@ -1161,20 +1028,20 @@ public class DetailsActivity extends AppCompatActivity implements View.OnClickLi
     }
 
     // save entry to db, and go back
-    private void doneBack(){
+    private void doneBack() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        intent.putExtra("status", "turn_on");
-        intent.putExtra("rowId", (int)id);
+        intent.putExtra(Constants.INTENT_EXTRA_STATUS, Constants.INTENT_EXTRA_TURN_ON);
+        intent.putExtra(Constants.INTENT_EXTRA_ROW_ID, (int) id);
         startActivity(intent);
     }
 
     // go back and delete row from db
-    private void deleteBack(){
+    private void deleteBack() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        intent.putExtra("rowId", (int)id);
-        intent.putExtra("status", "delete");
+        intent.putExtra(Constants.INTENT_EXTRA_ROW_ID, (int) id);
+        intent.putExtra(Constants.INTENT_EXTRA_STATUS, Constants.INTENT_EXTRA_DELETE);
         startActivity(intent);
     }
 
